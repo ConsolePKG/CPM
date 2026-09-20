@@ -14,7 +14,8 @@
     "tsc": "tsc --noEmit",
     "lint": "oxlint src --deny-warnings",
     "format:check": "oxfmt src --check",
-    "test": "rstest run"
+    "test": "rstest run",
+    "mock": "node mock/server.mjs"
   },
   "author": "njzy <njzydark@gmail.com>",
   "license": "MIT",

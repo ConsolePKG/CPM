@@ -55,6 +55,13 @@ pnpm run desktop:dev
 pnpm run desktop:start
 ```
 
+### UI testing modes
+
+- Real APIs (default): `pnpm run web:dev` → http://localhost:5173/
+- Mock data: `pnpm run web:mock` → http://localhost:4180/
+
+Mock mode uses isolated browser storage, bundled sample covers and two local simulated consoles. It is never included in the production app. See [testing mode instructions](apps/web/mock/README.md).
+
 ## Build
 
 ```bash
@@ -97,4 +104,4 @@ pnpm run desktop:dist
 
 ---
 
-[![Powered by DartNode](https://dartnode.com/branding/DN-Open-Source-sm.png)](https://dartnode.com "Powered by DartNode - Free VPS for Open Source")
+[![Powered by DartNode](https://dartnode.com/branding/DN-Open-Source-sm.png)](https://dartnode.com 'Powered by DartNode - Free VPS for Open Source')
