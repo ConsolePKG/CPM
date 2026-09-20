@@ -1,0 +1,155 @@
+.settings-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  background: var(--bg);
+}
+.settings-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--bg);
+  color: var(--text);
+  display: grid;
+  grid-template-columns: minmax(240px, calc((100vw - 640px) / 2 - 160px)) minmax(0, 780px) 1fr;
+  overflow: auto;
+}
+.settings-sidebar {
+  background: var(--surface);
+  padding: 70px 26px 40px;
+}
+.settings-nav-inner {
+  width: 210px;
+  margin-left: auto;
+  position: sticky;
+  top: 40px;
+}
+.settings-brand {
+  padding: 0 14px 36px;
+  font-size: 25px;
+  font-weight: 800;
+}
+.settings-brand small {
+  display: block;
+  margin-top: 7px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.settings-nav-group {
+  margin-bottom: 28px;
+}
+.settings-nav-group h3 {
+  padding: 0 14px 12px;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 650;
+}
+.settings-nav-group .cpm-button {
+  width: 100%;
+  justify-content: flex-start;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  margin-bottom: 3px;
+  font-size: 15px;
+}
+.settings-nav-group .is-active {
+  background: var(--surface-3);
+  color: var(--text);
+}
+.settings-version {
+  margin: 64px 14px 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--muted);
+}
+.settings-body {
+  padding: 76px 54px 80px;
+  min-width: 0;
+}
+.settings-title {
+  font-size: 28px;
+  font-weight: 650;
+}
+.settings-description {
+  margin-top: 16px;
+  margin-bottom: 36px;
+  color: var(--muted);
+}
+.settings-close {
+  position: sticky;
+  top: 76px;
+  padding-left: 24px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+.settings-close button {
+  border: 1px solid var(--muted);
+}
+.settings-close small {
+  width: 42px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 10px;
+}
+@media (max-width: 1050px) {
+  .settings-screen {
+    grid-template-columns: 230px minmax(0, 1fr) 72px;
+  }
+  .settings-sidebar {
+    padding: 40px 12px;
+  }
+  .settings-body {
+    padding: 48px 28px;
+  }
+  .settings-close {
+    top: 48px;
+    padding-left: 4px;
+  }
+  .settings-nav-inner {
+    width: 100%;
+  }
+}
+@media (max-width: 620px) {
+  .settings-screen {
+    display: block;
+  }
+  .settings-sidebar {
+    padding: 20px;
+  }
+  .settings-brand {
+    padding: 0 0 16px;
+  }
+  .settings-nav-inner {
+    position: static;
+  }
+  .settings-nav-group {
+    display: inline;
+    margin: 0;
+  }
+  .settings-nav-group h3,
+  .settings-version,
+  .settings-brand small {
+    display: none;
+  }
+  .settings-nav-group .cpm-button {
+    width: auto;
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+  .settings-body {
+    padding: 28px 20px;
+  }
+  .settings-close {
+    position: fixed;
+    top: 16px;
+    right: 20px;
+  }
+  .settings-close small {
+    display: none;
+  }
+}

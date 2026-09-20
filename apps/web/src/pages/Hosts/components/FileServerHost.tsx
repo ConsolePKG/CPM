@@ -1,182 +1,144 @@
-import { Button, Empty, Message, Notification, Space, Typography } from '@arco-design/web-react';
-import { IconDelete, IconEdit, IconPlus } from '@arco-design/web-react/icon';
-import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-
-import { ConfigCard } from '@/components/ConfigCard';
-import { useContainer } from '@/store/container';
-import { FileServerHost as IFileServerHost, FileServerType } from '@/types';
-
-import { FileServerFormModal, FormData } from './FileServerFormModal';
-
-export const FileServerHost = () => {
-  const [searchParams] = useSearchParams();
-
-  const [visible, setVisible] = useState(() => {
-    return searchParams.get('openFileServerHost') === 'true';
-  });
-  const [formData, setFormData] = useState<FormData>();
-
-  const { fileServer } = useContainer();
+import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { Edit2, Plus, Trash2 } from 'react-feather'
+import { Button, ConfirmDialog, Empty, IconButton, Notification } from '@/design-system'
+import { ConfigCard } from '@/components/ConfigCard'
+import { useContainer } from '@/store/container'
+import { FileServerType, type FileServerHost as Host } from '@/types'
+import { FileServerFormModal, type FormData } from './FileServerFormModal'
+import '../hosts.less'
+export function FileServerHost() {
+  const [params] = useSearchParams()
+  const [visible, setVisible] = useState(params.get('add') === 'true' || params.get('openFileServerHost') === 'true')
+  const [editing, setEditing] = useState<FormData>()
+  const [deleting, setDeleting] = useState<Host>()
+  const [pending, setPending] = useState(false)
   const {
-    fileServerHosts,
-    setFileServerHosts,
-    curFileServerHostId,
-    setCurFileServerHostId,
-    setFileServerFiles,
-    setPaths,
-    setIsFileServerReady
-  } = fileServer;
-
-  const handleAdd = () => {
-    setVisible(true);
-    setFormData(undefined);
-  };
-
-  const handleEdit = (host: IFileServerHost) => {
-    setVisible(true);
-    if (host.type === FileServerType.WebDAV) {
-      setFormData({
-        ...host,
-        password: host.options?.password,
-        username: host.options?.username
-      });
-    } else {
-      setFormData({
-        ...host,
-        iface: host.preferredInterface
-      });
-    }
-  };
-
-  const handleDelete = (host: IFileServerHost) => {
-    const newHosts = fileServerHosts.filter(h => h.id !== host.id);
-    setFileServerHosts(newHosts);
-  };
-
-  const handleChangeHost = async (host: IFileServerHost, action: 'Create' | 'Update') => {
+    fileServer: {
+      fileServerHosts,
+      setFileServerHosts,
+      curFileServerHostId,
+      setCurFileServerHostId,
+      setFileServerFiles,
+      setPaths,
+      setIsFileServerReady,
+    },
+  } = useContainer()
+  const activate = async (host: Host) => {
+    if (pending) return
+    setPending(true)
+    setIsFileServerReady(false)
     try {
-      setCurFileServerHostId(host.id);
-      setPaths([]);
-      setFileServerFiles([]);
-      setIsFileServerReady(false);
+      let selected = host
       if (host.type === FileServerType.StaticFileServer && window.electron) {
-        const res = await window.electron.createStaticFileServer({
+        const response = await window.electron.createStaticFileServer({
           directoryPath: host.directoryPath,
           port: host.port,
-          preferredInterface: host.preferredInterface
-        });
-        if (res?.url) {
-          Notification.success({
-            title: `${action} File Server Success`,
-            content: `The server url is ${res.url}`
-          });
-          setFileServerHosts(pre => {
-            const cur = pre.find(item => item.id === host.id);
-            if (cur) {
-              cur.url = res.url as string;
-            }
-            return [...pre];
-          });
-        } else {
-          Message.error(res?.errorMessage || `${action} file server failed`);
-          return;
-        }
+          preferredInterface: host.preferredInterface,
+        })
+        if (!response?.url) throw new Error(response?.errorMessage || '启动文件服务器失败')
+        selected = { ...host, url: response.url }
+        setFileServerHosts((old) => old.map((item) => (item.id === host.id ? selected : item)))
+        Notification.success({ title: '文件服务器已启动', content: response.url })
       }
-      setIsFileServerReady(true);
+      setPaths([])
+      setFileServerFiles([])
+      setCurFileServerHostId(selected.id)
     } catch (err) {
-      Notification.error({
-        title: 'Change file server host error',
-        content: (err as Error).message
-      });
+      Notification.error({ title: '切换文件服务器失败', content: (err as Error).message })
+    } finally {
+      setIsFileServerReady(true)
+      setPending(false)
     }
-  };
-
-  const handleFormOk = (value: FormData) => {
-    let newData: IFileServerHost;
-    const commonData = {
-      id: value.id as string,
-      url: value.url,
-      alias: value.alias
-    };
-    if (value.type === FileServerType.WebDAV) {
-      newData = {
-        ...commonData,
-        type: value.type,
-        recursiveQuery: value.recursiveQuery,
-        options: {
-          username: value.username,
-          password: value.password
-        }
-      };
-    } else {
-      newData = {
-        ...commonData,
-        type: value.type,
-        recursiveQuery: value.recursiveQuery,
-        directoryPath: value.directoryPath as string,
-        port: value.port as number,
-        preferredInterface: value.iface
-      };
-    }
-    const cur = fileServerHosts.find(item => item.id === value.id);
-    if (!cur) {
-      fileServerHosts.push(newData);
-    } else {
-      Object.assign(cur, newData);
-    }
-    setFileServerHosts([...fileServerHosts]);
-    if (!cur) {
-      handleChangeHost(newData, 'Create');
-    } else if (curFileServerHostId === value.id) {
-      handleChangeHost(newData, 'Update');
-    }
-  };
-
+  }
+  const save = (value: FormData) => {
+    const common = { id: value.id!, alias: value.alias, url: value.url, recursiveQuery: value.recursiveQuery }
+    const host: Host =
+      value.type === FileServerType.WebDAV
+        ? { ...common, type: value.type, options: { username: value.username, password: value.password } }
+        : {
+            ...common,
+            type: value.type,
+            directoryPath: value.directoryPath || '',
+            port: value.port || 1090,
+            preferredInterface: value.iface,
+          }
+    const exists = fileServerHosts.some((item) => item.id === host.id)
+    setFileServerHosts((old) => (exists ? old.map((item) => (item.id === host.id ? host : item)) : [...old, host]))
+    if (!exists || host.id === curFileServerHostId) void activate(host)
+  }
   return (
-    <div>
-      <Typography.Title heading={6} style={{ marginTop: 0 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span>File Server Host</span>
-          <Button type="primary" size="small" icon={<IconPlus />} onClick={handleAdd} />
-        </div>
-      </Typography.Title>
-      {!fileServerHosts.length ? (
-        <Empty description="Without file server host, you can't visit ps4 pkg file" />
-      ) : (
-        <>
-          <Space wrap style={{ display: fileServerHosts.length ? 'inline-flex' : 'none' }}>
-            {fileServerHosts.map(host => (
-              <ConfigCard
-                key={host.id}
-                title={host.alias || host.url || ('directoryPath' in host ? host.directoryPath : '')}
-                subTitle={host.type === FileServerType.WebDAV ? 'WebDAV' : 'Static File Server'}
-                isActive={host.id === curFileServerHostId}
-                onClick={() => handleChangeHost(host, 'Update')}
-                action={
-                  <Space size={3}>
-                    <ConfigCard.ActionIcon
-                      onClick={() => {
-                        handleEdit(host);
-                      }}
-                    >
-                      <IconEdit>Edit</IconEdit>
-                    </ConfigCard.ActionIcon>
-                    <ConfigCard.ActionIcon
-                      onClick={() => {
-                        handleDelete(host);
-                      }}
-                    >
-                      <IconDelete>Delete</IconDelete>
-                    </ConfigCard.ActionIcon>
-                  </Space>
-                }
-              />
-            ))}
-          </Space>
-        </>
-      )}
-      <FileServerFormModal visible={visible} data={formData} onOk={handleFormOk} onCancel={() => setVisible(false)} />
-    </div>
-  );
-};
+    <section className="hosts-section">
+      <div className="hosts-heading">
+        <p>WebDAV 或静态文件服务器中的游戏资源。</p>
+        <Button
+          type="primary"
+          icon={<Plus />}
+          disabled={pending}
+          onClick={() => {
+            setEditing(undefined)
+            setVisible(true)
+          }}
+        >
+          添加服务器
+        </Button>
+      </div>
+      <div className="hosts-cards">
+        {fileServerHosts.map((host) => (
+          <ConfigCard
+            key={host.id}
+            title={host.alias || host.url || '本地文件夹'}
+            subTitle={host.type === FileServerType.WebDAV ? 'WebDAV' : '静态文件服务器'}
+            meta={host.type === FileServerType.WebDAV ? host.url : host.directoryPath || host.url}
+            isActive={host.id === curFileServerHostId}
+            onClick={() => void activate(host)}
+            action={
+              <>
+                <IconButton
+                  label={`编辑 ${host.alias || host.url}`}
+                  variant="text"
+                  disabled={pending}
+                  onClick={() => {
+                    setEditing(
+                      host.type === FileServerType.WebDAV
+                        ? { ...host, username: host.options?.username, password: host.options?.password }
+                        : { ...host, iface: host.preferredInterface },
+                    )
+                    setVisible(true)
+                  }}
+                >
+                  <Edit2 />
+                </IconButton>
+                <IconButton
+                  label={`删除 ${host.alias || host.url}`}
+                  variant="text"
+                  disabled={pending}
+                  onClick={() => setDeleting(host)}
+                >
+                  <Trash2 />
+                </IconButton>
+              </>
+            }
+          />
+        ))}
+      </div>
+      {!fileServerHosts.length && <Empty description="添加文件服务器，开始浏览游戏库。" />}
+      <FileServerFormModal visible={visible} data={editing} onOk={save} onCancel={() => setVisible(false)} />
+      <ConfirmDialog
+        visible={Boolean(deleting)}
+        title="删除文件服务器配置？"
+        description="只移除保存的连接配置，不会删除服务器上的文件。"
+        onCancel={() => setDeleting(undefined)}
+        onConfirm={() => {
+          setFileServerHosts((old) => old.filter((host) => host.id !== deleting?.id))
+          if (deleting?.id === curFileServerHostId) {
+            setCurFileServerHostId(undefined)
+            setFileServerFiles([])
+            setPaths([])
+          }
+          setDeleting(undefined)
+        }}
+      />
+    </section>
+  )
+}

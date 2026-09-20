@@ -1,112 +1,84 @@
-import { Button, Drawer, Table, Tabs } from '@arco-design/web-react';
-import { IconSend } from '@arco-design/web-react/icon';
-import { PkgListClickAction } from 'common/types/configStore';
-import { useState } from 'react';
-
-import { FileStat } from '@/types';
-import { formatPkgName } from '@/utils';
-
-import { BasicInfo } from './BasicInfo';
-import styles from './DetailDrawer.module.less';
-import { SimpleList } from './SimpleList';
-
+import { Tabs } from '@base-ui/react/tabs'
+import { Download } from 'react-feather'
+import { useEffect, useState } from 'react'
+import { PkgListClickAction } from 'common/types/configStore'
+import { Button, Drawer } from '@/design-system'
+import type { FileStat } from '@/types'
+import { formatFileSize, formatPkgName } from '@/utils'
+import { GameCover } from './GameCover'
+import { SimpleList } from './SimpleList'
 type Props = {
-  visible: boolean;
-  data?: FileStat;
-  displayPkgRawTitle?: boolean;
-  handleCancel: () => void;
-  handleInstallByActionType: (data: FileStat, clickAction: PkgListClickAction) => void;
-};
-
-const { TabPane } = Tabs;
-
-enum ActiveTabKey {
-  INFO = 'INFO',
-  PATCH = 'PATCH',
-  ADDON = 'ADDON'
+  visible: boolean
+  data?: FileStat
+  displayPkgRawTitle?: boolean
+  handleCancel: () => void
+  handleInstallByActionType: (file: FileStat, action: PkgListClickAction) => void
 }
-
-export const DetailDrawer = ({ visible, data, displayPkgRawTitle, handleCancel, handleInstallByActionType }: Props) => {
-  const columns = [
-    {
-      title: 'Key',
-      dataIndex: 'key',
-      ellipsis: true
-    },
-    {
-      title: 'Value',
-      dataIndex: 'value',
-      ellipsis: true
-    }
-  ];
-
-  const tableData = Object.entries(data?.paramSfo || {}).map(val => ({
-    key: val[0],
-    value: val[1]
-  }));
-
-  const [activeTabKey, setActiveTabKey] = useState<ActiveTabKey>(ActiveTabKey.INFO);
-
+export function DetailDrawer({ visible, data, displayPkgRawTitle, handleCancel, handleInstallByActionType }: Props) {
+  const [tab, setTab] = useState<string | number>('info')
+  useEffect(() => {
+    setTab('info')
+  }, [data?.filename])
   return (
     <Drawer
-      className={styles.wrapper}
       visible={visible}
-      onCancel={() => {
-        setActiveTabKey(ActiveTabKey.INFO);
-        handleCancel();
-      }}
       title={formatPkgName(data, displayPkgRawTitle)}
-      width={500}
+      onCancel={handleCancel}
+      width={780}
       footer={
         <Button
-          icon={<IconSend />}
           type="primary"
-          onClick={() => {
-            data && handleInstallByActionType(data, PkgListClickAction.install);
-          }}
+          icon={<Download />}
+          disabled={!data}
+          onClick={() => data && handleInstallByActionType(data, PkgListClickAction.install)}
         >
-          Send install task
+          发送安装任务
         </Button>
       }
     >
-      <BasicInfo data={data} />
-      <Tabs
-        size="small"
-        activeTab={activeTabKey}
-        onChange={key => setActiveTabKey(key as ActiveTabKey)}
-        style={{
-          marginTop: 20
-        }}
-        type="line"
-      >
-        <TabPane key={ActiveTabKey.INFO} title={ActiveTabKey.INFO}>
-          <Table size="small" border={false} columns={columns} data={tableData} pagination={false} />
-        </TabPane>
-        {data?.patchs?.length && (
-          <TabPane
-            key={ActiveTabKey.PATCH}
-            title={
-              <span>
-                {ActiveTabKey.PATCH} ({data.patchs.length})
-              </span>
-            }
-          >
-            <SimpleList data={data?.patchs} handleInstallByActionType={handleInstallByActionType} />
-          </TabPane>
-        )}
-        {data?.addons?.length && (
-          <TabPane
-            key={ActiveTabKey.ADDON}
-            title={
-              <span>
-                {ActiveTabKey.ADDON} ({data.addons.length})
-              </span>
-            }
-          >
-            <SimpleList data={data?.addons} handleInstallByActionType={handleInstallByActionType} />
-          </TabPane>
-        )}
-      </Tabs>
+      {data && (
+        <>
+          <div className="game-detail-hero">
+            <div className="game-cover">
+              <GameCover file={data} />
+            </div>
+            <div>
+              <span className="muted">PLAYSTATION 4</span>
+              <h2>{formatPkgName(data, displayPkgRawTitle)}</h2>
+              <p>{formatFileSize(data.size)}</p>
+              <p>{data.paramSfo?.TITLE_ID || '尚未读取标题 ID'}</p>
+              <p>版本 {data.paramSfo?.APP_VER || data.paramSfo?.VERSION || '—'}</p>
+            </div>
+          </div>
+          <Tabs.Root value={tab} onValueChange={setTab}>
+            <Tabs.List className="detail-tabs">
+              <Tabs.Tab value="info">游戏信息</Tabs.Tab>
+              {Boolean(data.patchs?.length) && <Tabs.Tab value="patch">补丁 ({data.patchs!.length})</Tabs.Tab>}
+              {Boolean(data.addons?.length) && <Tabs.Tab value="addon">DLC ({data.addons!.length})</Tabs.Tab>}
+            </Tabs.List>
+            <Tabs.Panel value="info">
+              <dl className="game-metadata">
+                <div>
+                  <dt>文件名</dt>
+                  <dd>{data.basename}</dd>
+                </div>
+                {Object.entries(data.paramSfo || {}).map(([key, value]) => (
+                  <div key={key}>
+                    <dt>{key}</dt>
+                    <dd>{String(value)}</dd>
+                  </div>
+                ))}
+              </dl>
+            </Tabs.Panel>
+            <Tabs.Panel value="patch">
+              <SimpleList data={data.patchs || []} handleInstallByActionType={handleInstallByActionType} />
+            </Tabs.Panel>
+            <Tabs.Panel value="addon">
+              <SimpleList data={data.addons || []} handleInstallByActionType={handleInstallByActionType} />
+            </Tabs.Panel>
+          </Tabs.Root>
+        </>
+      )}
     </Drawer>
-  );
-};
+  )
+}

@@ -2,47 +2,46 @@
   "name": "web",
   "private": true,
   "version": "1.0.0-beta.8",
+  "type": "module",
   "engines": {
-    "node": ">=14",
-    "pnpm": "6"
+    "node": ">=22.12.0",
+    "pnpm": ">=12"
   },
   "scripts": {
-    "dev": "vite serve",
-    "build": "vite build",
+    "dev": "rsbuild dev",
+    "build": "rsbuild build",
+    "preview": "rsbuild preview",
     "tsc": "tsc --noEmit",
-    "lint": "eslint src --ext .ts,.tsx",
-    "lint:fix": "eslint src --fix --ext .ts,.tsx",
-    "prettier": "prettier --write src",
-    "upload:sourcemap": "ts-node scripts/uploadSourcemap"
+    "lint": "oxlint src --deny-warnings",
+    "format:check": "oxfmt src --check",
+    "test": "rstest run"
   },
   "author": "njzy <njzydark@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "@arco-design/web-react": "^2.42.2",
+    "@base-ui/react": "catalog:",
     "@njzy/ps4-pkg-info": "workspace:^0.1.0",
-    "@sentry/react": "^7.25.0",
-    "@sentry/tracing": "^7.25.0",
-    "axios": "^1.2.1",
-    "classnames": "^2.3.2",
+    "@sentry/react": "7.120.4",
+    "@sentry/tracing": "7.120.4",
+    "axios": "1.20.0",
+    "classnames": "2.5.1",
     "common": "workspace:^1.0.0-beta.8",
-    "dayjs": "^1.11.7",
-    "json5": "^2.2.1",
-    "nanoid": "^4.0.0",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
-    "react-feather": "^2.0.10",
-    "react-lazy-load-image-component": "^1.5.6",
-    "react-router-dom": "^6.4.5",
-    "webdav": "^4.11.2"
+    "dayjs": "1.11.23",
+    "json5": "2.2.3",
+    "nanoid": "6.0.1",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-feather": "2.0.10",
+    "react-lazy-load-image-component": "1.6.3",
+    "react-router-dom": "catalog:",
+    "webdav": "5.10.0"
   },
   "devDependencies": {
-    "@arco-plugins/vite-react": "^1.3.2",
-    "@types/react-lazy-load-image-component": "^1.5.2",
-    "@vitejs/plugin-legacy": "^3.0.1",
-    "@vitejs/plugin-react": "^3.0.0",
-    "babel-plugin-import": "^1.13.5",
-    "terser": "5.16.1",
-    "vite": "^4.0.0",
-    "vite-plugin-checker": "^0.5.2"
+    "@rsbuild/core": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@types/react-lazy-load-image-component": "1.6.5",
+    "infra-tools": "workspace:*",
+    "typescript": "catalog:"
   }
 }

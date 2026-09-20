@@ -1,79 +1,76 @@
-import { Button, Link } from '@arco-design/web-react';
-import { IconGithub } from '@arco-design/web-react/icon';
-import { useEffect, useState } from 'react';
+import { Button, Link } from '@/components/ui'
+import { IconGithub } from '@/components/icons'
+import { useEffect, useState } from 'react'
 
 // @ts-ignore
-import Icon from '@/assets/icon.png';
+import Icon from '@/assets/icon.png'
 
-const LinkUrl = 'https://github.com/njzydark/PS4RPS';
+import styles from './Info.module.less'
+
+const LinkUrl = 'https://github.com/njzydark/PS4RPS'
 
 export const Info = () => {
   const [appInfo, setAppInfo] = useState<{
-    version: string;
-    name: string;
-    path: string;
-  }>();
+    version: string
+    name: string
+    path: string
+  }>()
 
   useEffect(() => {
     const getAppInfo = async () => {
       if (!window.electron) {
-        return;
+        return
       }
-      const appInfo = await window.electron.getAppInfo();
+      const appInfo = await window.electron.getAppInfo()
       if (appInfo) {
-        setAppInfo(appInfo);
+        setAppInfo(appInfo)
       }
-    };
+    }
 
     if (window.electron) {
-      getAppInfo();
+      getAppInfo()
     } else {
       setAppInfo({
         name: 'PS4RPS',
         version: _app_version,
-        path: ''
-      });
+        path: '',
+      })
     }
-  }, []);
+  }, [])
 
   const handleOpenLink = () => {
     if (window.electron) {
-      window.electron.openExternal(LinkUrl);
+      window.electron.openExternal(LinkUrl)
     } else {
-      window.open(LinkUrl);
+      window.open(LinkUrl)
     }
-  };
+  }
 
   if (!appInfo) {
-    return null;
+    return null
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={handleOpenLink}>
-      <img style={{ flexShrink: 0 }} src={Icon} width={80} />
-      <div style={{ flex: 1 }}>
-        <h3>{appInfo?.name}</h3>
-        <div>{appInfo?.version}</div>
+    <section className={styles.info}>
+      <div className={styles.identity}>
+        <img src={Icon} width={64} height={64} alt="PS4RPS" />
+        <div>
+          <h2>{appInfo.name}</h2>
+          <p>{appInfo.version}</p>
+        </div>
       </div>
-      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
-        <Link>
-          If you love this software, please give me a star
-          <IconGithub style={{ cursor: 'pointer', marginLeft: 12 }} />
+      <div className={styles.actions}>
+        <Link
+          href={LinkUrl}
+          onClick={(event) => {
+            event.preventDefault()
+            handleOpenLink()
+          }}
+        >
+          GitHub <IconGithub aria-hidden="true" />
         </Link>
-        {window.electron && (
-          <div style={{ textAlign: 'right', marginTop: 8 }}>
-            <Button
-              size="small"
-              onClick={e => {
-                e.stopPropagation();
-                window.electron?.checkUpdate();
-              }}
-            >
-              Check Update
-            </Button>
-          </div>
-        )}
+        {window.electron && <Button onClick={() => window.electron?.checkUpdate()}>Check for updates</Button>}
       </div>
-    </div>
-  );
-};
+    </section>
+  )
+}

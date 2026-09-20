@@ -1,0 +1,10 @@
+{
+  "trailingComma": "all",
+  "tabWidth": 2,
+  "printWidth": 120,
+  "semi": false,
+  "singleQuote": true,
+  "arrowParens": "always",
+  "sortPackageJson": false,
+  "ignorePatterns": ["**/dist/**", "**/types/**", "**/node_modules/**", "pnpm-lock.yaml"]
+}

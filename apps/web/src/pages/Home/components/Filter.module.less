@@ -2,14 +2,31 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  background: var(--rps-bg-primary);
-  padding-bottom: 10px;
+  margin-bottom: 24px;
+  padding-bottom: 14px;
+  background: var(--bg);
 }
 
 .filter {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 18px;
+  min-height: 44px;
+}
+
+.filter :global(.cpm-breadcrumb) {
+  min-width: 0;
+  color: #9eabb7;
+}
+
+.filter :global(.cpm-input-shell) {
+  min-width: 220px;
+  background: #1b2838;
+}
+
+.filter :global(.cpm-radio-group-button) {
+  flex-shrink: 0;
 }
 
 .loading-line,

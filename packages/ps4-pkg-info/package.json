@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Get information (paramSfo and icon0) from a PlayStation 4 PKG file",
   "engines": {
-    "node": ">=12"
+    "node": ">=22.12.0"
   },
   "files": [
     "src",
@@ -18,21 +18,21 @@
     "./web": {
       "import": "./web/index.mjs",
       "require": "./web/index.js",
-      "types": "./web/index.d.ts"
+      "types": "./types/web/index.d.ts"
     },
     ".": {
       "import": "./dist/index.mjs",
       "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./types/node/index.d.ts"
     }
   },
   "scripts": {
     "dev": "pnpm run dev:node & pnpm run dev:web",
-    "build": "pnpm run build:node & pnpm run build:web",
-    "build:node": "tsup src/node -d dist --target es5 --format cjs,esm --dts --clean",
-    "build:web": "tsup src/web -d web --target es5 --format cjs,esm --dts --clean",
-    "dev:node": "pnpm run build:node -- --sourcemap --watch src",
-    "dev:web": "pnpm run build:web -- --sourcemap --watch src",
+    "build": "pnpm run build:node && pnpm run build:web",
+    "build:node": "rslib build --config rslib.node.config.ts",
+    "build:web": "rslib build --config rslib.web.config.ts",
+    "dev:node": "rslib build --config rslib.node.config.ts --watch",
+    "dev:web": "rslib build --config rslib.web.config.ts --watch",
     "prepublishOnly": "pnpm run build"
   },
   "keywords": [
@@ -49,7 +49,10 @@
     "python-struct": "^1.1.3"
   },
   "devDependencies": {
-    "@types/python-struct": "^1.0.1"
+    "@rslib/core": "catalog:",
+    "@types/node": "catalog:",
+    "@types/python-struct": "1.0.5",
+    "infra-tools": "workspace:*"
   },
   "repository": {
     "type": "git",

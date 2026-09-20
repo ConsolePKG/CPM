@@ -1,9 +1,9 @@
-import { IElectronAPI } from 'common/types';
+import { IElectronAPI } from 'common/types'
 
 declare global {
   interface Window {
-    electron?: IElectronAPI;
+    electron?: IElectronAPI
   }
 
-  const _app_version: string;
+  const _app_version: string
 }

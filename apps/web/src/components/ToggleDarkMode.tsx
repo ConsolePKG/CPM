@@ -1,37 +1,16 @@
-import { Radio } from '@arco-design/web-react';
-import { IconMoon, IconSun } from '@arco-design/web-react/icon';
-import { useState } from 'react';
-
-import { useDarkMode } from '@/hooks/useDarkMode';
-
-type CheckedKey = 'light' | 'dark' | 'auto';
-
+import { SegmentedControl, useTheme } from '@/design-system'
 export const ToggleDarkMode = () => {
-  const { auto, isDarkMode, setAuto, setIsDarkMode } = useDarkMode();
-
-  const [checked, setChecked] = useState<CheckedKey>(() => {
-    return auto ? 'auto' : isDarkMode ? 'dark' : 'light';
-  });
-
-  const handleChange = (value: CheckedKey) => {
-    setChecked(value);
-    if (value === 'auto') {
-      setAuto(true);
-    } else {
-      setAuto(false);
-      setIsDarkMode(value === 'dark');
-    }
-  };
-
+  const { mode, setMode } = useTheme()
   return (
-    <Radio.Group type="button" value={checked} onChange={handleChange}>
-      <Radio value="light">
-        <IconSun />
-      </Radio>
-      <Radio value="auto">Auto</Radio>
-      <Radio value="dark">
-        <IconMoon />
-      </Radio>
-    </Radio.Group>
-  );
-};
+    <SegmentedControl
+      value={mode}
+      onChange={setMode}
+      label="外观"
+      options={[
+        { value: 'light', label: '日间' },
+        { value: 'dark', label: '夜间' },
+        { value: 'system', label: '跟随系统' },
+      ]}
+    />
+  )
+}

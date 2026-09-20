@@ -1,66 +1,43 @@
-.card-list-wrapper {
+.cpm-game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(182px, 1fr));
+  gap: 22px 18px;
+  padding: 8px 0 32px;
+}
+.cpm-game-card {
+  min-width: 0;
+  background: #1b2838;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+.cpm-game-card:hover,
+.cpm-game-card:focus-visible {
+  outline: 0;
+  transform: translateY(-4px);
+  border-color: #66c0f4;
+  box-shadow: 0 12px 24px rgb(0 0 0 / 35%);
+}
+.cpm-game-meta {
+  padding: 10px 2px 0;
   display: flex;
-  flex-flow: row wrap;
-  .item-wrapper {
-    width: calc(100% / 6);
-    padding: 8px;
-    .title {
-      margin-top: 10px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-    }
-    &:hover {
-      cursor: default;
-    }
-  }
+  flex-direction: column;
+  gap: 4px;
 }
-
-@media (min-width: 600px) {
-  .card-list-wrapper {
-    .item-wrapper {
-      width: calc(100% / 5);
-    }
-  }
+.cpm-game-meta strong {
+  color: var(--text);
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-
-@media (min-width: 728px) {
-  .card-list-wrapper {
-    .item-wrapper {
-      width: calc(100% / 6);
-    }
-  }
-}
-
-@media (min-width: 1024px) {
-  .card-list-wrapper {
-    .item-wrapper {
-      width: calc(100% / 8);
-    }
-  }
-}
-
-@media (min-width: 1200px) {
-  .card-list-wrapper {
-    .item-wrapper {
-      width: calc(100% / 10);
-    }
-  }
-}
-
-@media (min-width: 1400px) {
-  .card-list-wrapper {
-    .item-wrapper {
-      width: calc(100% / 12);
-    }
-  }
-}
-
-@media (min-width: 1600px) {
-  .card-list-wrapper {
-    .item-wrapper {
-      width: calc(100% / 14);
-    }
-  }
+.cpm-game-meta span,
+.cpm-game-meta small {
+  color: var(--muted);
+  font-size: 11px;
 }

@@ -1,0 +1,26 @@
+.hosts-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 24px 0;
+}
+.hosts-heading p {
+  color: var(--muted);
+  font-size: 13px;
+}
+.hosts-cards {
+  display: grid;
+  gap: 16px;
+}
+.host-path {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 13px;
+}
+@media (max-width: 680px) {
+  .hosts-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

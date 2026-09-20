@@ -1,136 +1,136 @@
-import { ipcMainHandle, ipcMainOn } from 'common/typedIpc';
-import { app, BrowserWindow, dialog } from 'electron';
-import fs from 'fs';
+import { ipcMainHandle, ipcMainOn } from 'common/typedIpc'
+import { app, BrowserWindow, dialog } from 'electron'
+import fs from 'fs'
 
-import { Logger } from './logger';
-import { staticServerManager } from './staticServerManager';
-import { storeManager } from './store';
-import { updater } from './updater';
-import { getAvailableInterfaces, getIp } from './utils';
+import { Logger } from './logger'
+import { staticServerManager } from './staticServerManager'
+import { storeManager } from './store'
+import { updater } from './updater'
+import { getAvailableInterfaces, getIp } from './utils'
 
 export class Ipc {
-  static win: BrowserWindow;
+  static win: BrowserWindow
 
-  private static instance: Ipc;
+  private static instance: Ipc
 
   static getInstance() {
     if (!Ipc.instance) {
-      Ipc.instance = new Ipc();
+      Ipc.instance = new Ipc()
     }
-    return Ipc.instance;
+    return Ipc.instance
   }
 
   static sendMessage(channel: string, channelData?: any) {
     if (BrowserWindow.getAllWindows().length > 0) {
-      Ipc.win.webContents.send(channel, channelData);
+      Ipc.win.webContents.send(channel, channelData)
     }
   }
 
-  logger: Logger;
+  logger: Logger
 
   protected constructor() {
-    this.logger = Logger.getInstance();
+    this.logger = Logger.getInstance()
 
-    this.init();
+    this.init()
   }
 
   protected init() {
-    this.initWebDavServer();
+    this.initWebDavServer()
 
     ipcMainHandle('getAppInfo', async () => {
-      const version = app.getVersion();
-      const path = app.getAppPath();
-      const name = app.getName();
+      const version = app.getVersion()
+      const path = app.getAppPath()
+      const name = app.getName()
       return {
         version,
         path,
-        name
-      };
-    });
+        name,
+      }
+    })
 
-    ipcMainOn('openDirectoryDialog', async event => {
+    ipcMainOn('openDirectoryDialog', async (event) => {
       const { filePaths } = await dialog.showOpenDialog({
-        properties: ['openDirectory']
-      });
+        properties: ['openDirectory'],
+      })
       // eslint-disable-next-line prefer-destructuring
-      event.returnValue = filePaths[0];
-    });
+      event.returnValue = filePaths[0]
+    })
 
     ipcMainHandle('createStaticFileServer', async (_, { directoryPath, port, preferredInterface }) => {
       try {
-        const res = await staticServerManager.createServer({ directoryPath, port });
-        const ip = preferredInterface ?? getIp();
+        const res = await staticServerManager.createServer({ directoryPath, port })
+        const ip = preferredInterface ?? getIp()
         if (res && ip) {
           return {
-            url: `http://${ip}:${port}`
-          };
+            url: `http://${ip}:${port}`,
+          }
         }
       } catch (err) {
         return {
-          errorMessage: `Create WebDAV server failed: ${(err as Error).message}`
-        };
+          errorMessage: `Create WebDAV server failed: ${(err as Error).message}`,
+        }
       }
-    });
+    })
 
     ipcMainHandle('getAvailableInterfaces', async () => {
       try {
-        const ifaces = getAvailableInterfaces();
+        const ifaces = getAvailableInterfaces()
         if (ifaces) {
-          return ifaces.map(ifc => {
-            return { ipv4: ifc?.address || '' };
-          });
+          return ifaces.map((ifc) => {
+            return { ipv4: ifc?.address || '' }
+          })
         }
       } catch (err) {
         return {
-          errorMessage: `Get AvailableInterfaces failed: ${(err as Error).message}`
-        };
+          errorMessage: `Get AvailableInterfaces failed: ${(err as Error).message}`,
+        }
       }
-      return [];
-    });
+      return []
+    })
 
     ipcMainHandle('getPath', async (_, path) => {
-      return app.getPath(path);
-    });
+      return app.getPath(path)
+    })
 
     ipcMainHandle('chnageWindowStatus', async (_, status) => {
       if (status === 'minimize') {
-        Ipc.win.minimize();
+        Ipc.win.minimize()
       }
       if (status === 'maximize') {
         if (Ipc.win.isMaximized()) {
-          Ipc.win.unmaximize();
+          Ipc.win.unmaximize()
         } else {
-          Ipc.win.maximize();
+          Ipc.win.maximize()
         }
       }
       if (status === 'close') {
-        Ipc.win.close();
+        Ipc.win.close()
       }
-    });
+    })
 
     ipcMainHandle('openDevTools', async () => {
-      Ipc.win.webContents.openDevTools();
-    });
+      Ipc.win.webContents.openDevTools()
+    })
 
     ipcMainHandle('openAppLog', async () => {
-      this.logger.open();
-    });
+      this.logger.open()
+    })
 
     ipcMainHandle('checkUpdate', async () => {
-      await updater.checkUpdate(true, true);
-    });
+      await updater.checkUpdate(true, true)
+    })
   }
 
   protected async initWebDavServer() {
     try {
-      const { fileServerHosts, curFileServerHostId } = storeManager.configStore.store;
-      const curHost = fileServerHosts.find(item => item.id === curFileServerHostId);
+      const { fileServerHosts, curFileServerHostId } = storeManager.configStore.store
+      const curHost = fileServerHosts.find((item) => item.id === curFileServerHostId)
       if (curHost?.port && curHost?.directoryPath && fs.existsSync(curHost?.directoryPath)) {
-        await staticServerManager.createServer({ directoryPath: curHost.directoryPath, port: curHost.port });
-        console.log(`Init static file server success: ${curHost.directoryPath}`);
+        await staticServerManager.createServer({ directoryPath: curHost.directoryPath, port: curHost.port })
+        console.log(`Init static file server success: ${curHost.directoryPath}`)
       }
     } catch (err) {
-      console.error(`Init static file server failed: ${(err as Error).message}`);
+      console.error(`Init static file server failed: ${(err as Error).message}`)
     }
   }
 }

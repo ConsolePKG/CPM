@@ -5,51 +5,28 @@
   "productName": "PS4RPS",
   "description": "Remote pkg sender for PS4",
   "author": "njzy <njzydark@gmail.com>",
-  "license": "MIT",
-  "homepage": "https://github.com/njzydark/PS4RPS#readme",
-  "engines": {
-    "node": ">=14",
-    "pnpm": "6"
-  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/njzydark/PS4RPS.git"
+    "url": "https://github.com/njzydark/PS4RPS.git"
   },
-  "bugs": {
-    "url": "https://github.com/njzydark/PS4RPS/issues"
+  "license": "MIT",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22.12.0",
+    "pnpm": ">=12"
   },
   "main": "dist/main/index.js",
   "scripts": {
     "start": "electron . --remote-debugging-port=9223 --inspect=9224",
-    "dev": "cross-env NODE_ENV=development webpack --watch --mode development --config build/webpack.config.dev.ts",
-    "build": "cross-env NODE_ENV=production webpack --mode production --config build/webpack.config.prod.ts",
-    "analyz": "cross-env NODE_ENV=production webpack --config build/webpack.config.analy.ts",
-    "copyRenderer": "pnpm exec ts-node ./scripts/copyRenderer.ts",
-    "pack": "pnpm exec ts-node ./scripts/copyRenderer.ts && electron-builder --dir",
-    "dist": "pnpm exec ts-node ./scripts/copyRenderer.ts && electron-builder",
+    "start:dev": "wait-on http://localhost:5173 dist/main/index.js && cross-env NODE_ENV=development RENDERER_DEV_PORT=5173 electronmon . --watch dist/main",
+    "dev:main": "cross-env NODE_ENV=development rsbuild build --watch",
+    "build": "cross-env NODE_ENV=production rsbuild build && pnpm run copyRenderer",
+    "copyRenderer": "node scripts/copyRenderer.mjs",
     "tsc": "tsc --noEmit",
-    "lint": "eslint src --ext .ts,.tsx",
-    "lint:fix": "eslint src --fix --ext .ts,.tsx",
-    "prettier": "prettier --write src"
-  },
-  "devDependencies": {
-    "@njzy/ps4-pkg-info": "workspace:^0.1.0",
-    "axios": "^1.2.1",
-    "common": "workspace:^1.0.0-beta.8",
-    "content-disposition": "^0.5.4",
-    "cross-env": "^7.0.3",
-    "dotenv": "^16.0.3",
-    "electron": "16.0.8",
-    "electron-builder": "~23.6.0",
-    "electron-log": "^4.4.8",
-    "electron-reloader": "^1.2.3",
-    "electron-store": "^8.1.0",
-    "fs-extra": "^11.1.0",
-    "get-folder-size": "^4.0.0",
-    "glob": "^8.0.3",
-    "semver": "^7.3.8",
-    "serve-static": "^1.15.0",
-    "webdav-server": "^2.6.2"
+    "lint": "oxlint src --deny-warnings",
+    "format:check": "oxfmt src --check",
+    "pack": "pnpm run build && electron-builder --dir",
+    "dist": "pnpm run build && electron-builder"
   },
   "build": {
     "extraMetadata": {
@@ -121,5 +98,29 @@
         }
       ]
     }
+  },
+  "dependencies": {
+    "@njzy/ps4-pkg-info": "workspace:^0.1.0",
+    "axios": "1.20.0",
+    "common": "workspace:^1.0.0-beta.8",
+    "content-disposition": "0.5.4",
+    "dotenv": "18.0.1",
+    "electron-log": "catalog:",
+    "electron-store": "catalog:",
+    "fs-extra": "11.3.0",
+    "get-folder-size": "5.0.0",
+    "semver": "7.7.3",
+    "serve-static": "2.2.0",
+    "webdav-server": "2.6.2"
+  },
+  "devDependencies": {
+    "@rsbuild/core": "catalog:",
+    "cross-env": "10.1.0",
+    "electron": "catalog:",
+    "electron-builder": "catalog:",
+    "electronmon": "2.0.4",
+    "infra-tools": "workspace:*",
+    "typescript": "catalog:",
+    "wait-on": "9.1.0"
   }
 }

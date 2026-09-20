@@ -1,26 +1,26 @@
-import { ipcRendererInvoke, ipcRendererSendSync } from 'common/typedIpc';
-import { IElectronAPI } from 'common/types';
-import { contextBridge, shell } from 'electron';
+import { ipcRendererInvoke, ipcRendererSendSync } from 'common/typedIpc'
+import { IElectronAPI } from 'common/types'
+import { contextBridge, shell } from 'electron'
 
-import { storeManager } from './store';
+import { storeManager } from './store'
 
 export const preload = () => {
   if (!global.window) {
-    return;
+    return
   }
 
   const electronApi: IElectronAPI = {
     configStore: {
       get: (...args: [any]) => storeManager.configStore.get(...args),
       set: (...args: [any]) => storeManager.configStore.set(...args),
-      has: key => storeManager.configStore.has(key),
-      delete: key => storeManager.configStore.delete(key),
-      clear: () => storeManager.configStore.clear()
+      has: (key) => storeManager.configStore.has(key),
+      delete: (key) => storeManager.configStore.delete(key),
+      clear: () => storeManager.configStore.clear(),
     },
     platform: process.platform,
-    chnageWindowStatus: status => ipcRendererInvoke('chnageWindowStatus', status),
-    openExternal: url => shell.openExternal(url),
-    getPath: path => ipcRendererInvoke('getPath', path),
+    chnageWindowStatus: (status) => ipcRendererInvoke('chnageWindowStatus', status),
+    openExternal: (url) => shell.openExternal(url),
+    getPath: (path) => ipcRendererInvoke('getPath', path),
     getAppInfo: () => ipcRendererInvoke('getAppInfo'),
     openDevTools: () => ipcRendererInvoke('openDevTools'),
     createStaticFileServer: ({ directoryPath, port, preferredInterface }) =>
@@ -28,10 +28,10 @@ export const preload = () => {
     openDirectoryDialog: () => ipcRendererSendSync('openDirectoryDialog'),
     getAvailableInterfaces: () => ipcRendererInvoke('getAvailableInterfaces'),
     openAppLog: () => ipcRendererInvoke('openAppLog'),
-    checkUpdate: () => ipcRendererInvoke('checkUpdate')
-  };
+    checkUpdate: () => ipcRendererInvoke('checkUpdate'),
+  }
 
-  contextBridge.exposeInMainWorld('electron', electronApi);
-};
+  contextBridge.exposeInMainWorld('electron', electronApi)
+}
 
-preload();
+preload()

@@ -1,73 +1,73 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react'
 
-const COLOR_SCHEME_QUERY = '(prefers-color-scheme: dark)';
+const COLOR_SCHEME_QUERY = '(prefers-color-scheme: dark)'
 
 const getMatches = (query: string): boolean => {
   if (typeof window !== 'undefined') {
-    return window?.matchMedia?.(query)?.matches;
+    return window?.matchMedia?.(query)?.matches
   }
-  return false;
-};
+  return false
+}
 
-type CacheKey = 'isDarkModeAuto' | 'isDarkMode';
+type CacheKey = 'isDarkModeAuto' | 'isDarkMode'
 
 const getCacheFromLocalStorage = (key: CacheKey): string | null => {
-  return localStorage.getItem(key);
-};
+  return localStorage.getItem(key)
+}
 
 export const useDarkMode = () => {
   const [auto, setAuto] = useState(() => {
-    const isDarkModeAuto = getCacheFromLocalStorage('isDarkModeAuto');
-    return isDarkModeAuto ? isDarkModeAuto === 'true' : true;
-  });
+    const isDarkModeAuto = getCacheFromLocalStorage('isDarkModeAuto')
+    return isDarkModeAuto ? isDarkModeAuto === 'true' : true
+  })
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    const isDarkModeAuto = getCacheFromLocalStorage('isDarkModeAuto') === 'true';
-    const isDarkMode = getCacheFromLocalStorage('isDarkMode') === 'true';
-    return isDarkModeAuto ? getMatches(COLOR_SCHEME_QUERY) : isDarkMode;
-  });
+    const isDarkModeAuto = getCacheFromLocalStorage('isDarkModeAuto') === 'true'
+    const isDarkMode = getCacheFromLocalStorage('isDarkMode') === 'true'
+    return isDarkModeAuto ? getMatches(COLOR_SCHEME_QUERY) : isDarkMode
+  })
 
   useEffect(() => {
     if (isDarkMode) {
-      document.body.setAttribute('arco-theme', 'dark');
+      document.body.classList.add('dark-mode')
     } else {
-      document.body.removeAttribute('arco-theme');
+      document.body.classList.remove('dark-mode')
     }
-  }, [isDarkMode]);
+  }, [isDarkMode])
 
   useEffect(() => {
     if (!auto) {
-      return;
+      return
     }
     const handler = (e: MediaQueryListEvent) => {
-      console.log('Detect darkmode change', e.matches);
+      console.log('Detect darkmode change', e.matches)
       if (e.matches) {
-        setIsDarkMode(true);
+        setIsDarkMode(true)
       } else {
-        setIsDarkMode(false);
+        setIsDarkMode(false)
       }
-    };
-    const isDarkMode = getMatches(COLOR_SCHEME_QUERY);
-    if (isDarkMode) {
-      setIsDarkMode(true);
-    } else {
-      setIsDarkMode(false);
     }
-    const wm = window?.matchMedia?.('(prefers-color-scheme: dark)');
-    wm?.addEventListener?.('change', handler);
+    const isDarkMode = getMatches(COLOR_SCHEME_QUERY)
+    if (isDarkMode) {
+      setIsDarkMode(true)
+    } else {
+      setIsDarkMode(false)
+    }
+    const wm = window?.matchMedia?.('(prefers-color-scheme: dark)')
+    wm?.addEventListener?.('change', handler)
     return () => {
-      wm?.removeEventListener?.('change', handler);
-    };
-  }, [auto]);
+      wm?.removeEventListener?.('change', handler)
+    }
+  }, [auto])
 
   useEffect(() => {
-    localStorage.setItem('isDarkModeAuto', auto ? 'true' : 'false');
-    localStorage.setItem('isDarkMode', isDarkMode ? 'true' : 'false');
-  }, [isDarkMode, auto]);
+    localStorage.setItem('isDarkModeAuto', auto ? 'true' : 'false')
+    localStorage.setItem('isDarkMode', isDarkMode ? 'true' : 'false')
+  }, [isDarkMode, auto])
 
   return {
     isDarkMode,
     setIsDarkMode,
     auto,
-    setAuto
-  };
-};
+    setAuto,
+  }
+}

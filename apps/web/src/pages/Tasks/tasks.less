@@ -1,0 +1,220 @@
+.tasks-page {
+  padding-top: 20px;
+}
+.tasks-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+.tasks-heading h1 {
+  font-size: 27px;
+  font-weight: 650;
+}
+.tasks-heading h1 small {
+  font-size: 16px;
+  margin-left: 12px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.task-summary {
+  display: flex;
+  align-items: center;
+  gap: clamp(24px, 7vw, 110px);
+  padding: 32px 0;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+}
+.task-summary > div > span {
+  color: var(--muted);
+  font-size: 12px;
+  display: block;
+}
+.task-summary strong {
+  display: block;
+  font-size: 27px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+.task-summary strong small {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 400;
+  margin-left: 8px;
+}
+.task-summary > button {
+  margin-left: auto;
+}
+.task-group {
+  margin-bottom: 26px;
+}
+.task-group > h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 22px 0 16px;
+}
+.task-group > h3 small {
+  color: var(--muted);
+  margin-left: 14px;
+  font-size: 12px;
+}
+.task-card {
+  display: grid;
+  grid-template-columns: 98px minmax(220px, 1fr) minmax(130px, 260px) auto;
+  gap: 24px;
+  align-items: center;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  margin-bottom: 14px;
+}
+.task-cover {
+  aspect-ratio: 2 / 3;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.task-cover > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.task-title {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  justify-content: space-between;
+}
+.task-title h2 {
+  font-size: 20px;
+  font-weight: 600;
+}
+.task-title > span {
+  font-size: 12px;
+  white-space: nowrap;
+}
+.task-host {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 5px;
+  overflow-wrap: anywhere;
+}
+.task-progress-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 22px 0 10px;
+  font-size: 12px;
+}
+.task-progress-label strong {
+  color: var(--accent);
+  font-weight: 550;
+}
+.task-progress-label > span {
+  color: var(--muted);
+}
+.task-facts {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.task-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.task-chart {
+  color: var(--accent);
+  width: 100%;
+  max-width: 300px;
+}
+.task-chart svg {
+  display: block;
+  width: 100%;
+  height: 76px;
+}
+.task-chart > div {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 10px;
+}
+.task-chart small,
+.task-chart-empty {
+  color: var(--muted);
+  font-size: 11px;
+}
+.task-chart-empty {
+  text-align: center;
+}
+.task-error {
+  color: var(--danger);
+  font-size: 12px;
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+.task-card.is-compact {
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+}
+.task-card.is-compact .task-title h2 {
+  font-size: 17px;
+}
+.task-card.is-compact .task-progress-label {
+  margin-top: 12px;
+}
+@media (max-width: 1050px) {
+  .task-card {
+    grid-template-columns: 80px minmax(200px, 1fr) auto;
+    gap: 18px;
+  }
+  .task-chart,
+  .task-chart-empty {
+    grid-column: 2;
+  }
+  .task-actions {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}
+@media (max-width: 650px) {
+  .tasks-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .task-summary {
+    flex-wrap: wrap;
+    gap: 24px;
+  }
+  .task-summary strong {
+    font-size: 21px;
+  }
+  .task-summary > button {
+    margin-left: 0;
+  }
+  .task-card,
+  .task-card.is-compact {
+    grid-template-columns: 48px minmax(0, 1fr);
+    padding: 14px;
+    gap: 14px;
+  }
+  .task-actions {
+    grid-column: 2;
+    grid-row: auto;
+  }
+  .task-title h2 {
+    font-size: 16px;
+  }
+  .task-title > span {
+    display: none;
+  }
+  .task-chart,
+  .task-chart-empty {
+    grid-column: 2;
+  }
+}

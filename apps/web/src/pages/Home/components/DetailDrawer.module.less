@@ -5,14 +5,60 @@
 }
 
 .wrapper {
+  :global(.cpm-drawer) {
+    max-width: min(92vw, 980px);
+  }
+
   :global {
-    .arco-drawer-header-title {
+    .cpm-drawer h2 {
       .ellipsis();
       width: 100%;
       margin-right: 30px;
     }
-    .arco-tabs-content {
+    .cpm-tabs {
       padding-top: 12px;
     }
+  }
+}
+
+.detail-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(220px, 0.7fr);
+  gap: 28px;
+  align-items: center;
+  padding: 6px 0 28px;
+  border-bottom: 1px solid #2a475e;
+}
+
+.detail-copy {
+  min-width: 0;
+}
+
+.detail-copy h3 {
+  margin: 7px 0 10px;
+  color: #fff;
+  font-size: clamp(22px, 3vw, 34px);
+  line-height: 1.12;
+}
+
+.detail-copy p:last-child {
+  overflow: hidden;
+  color: #8f98a0;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #66c0f4;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+}
+
+@media (max-width: 700px) {
+  .detail-hero {
+    grid-template-columns: 1fr;
   }
 }

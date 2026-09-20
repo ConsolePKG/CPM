@@ -1,67 +1,30 @@
-import { Typography } from '@arco-design/web-react';
-import cs from 'classnames';
-import React, { ReactNode } from 'react';
-
-import styles from './ConfigCard.module.less';
-import { Link } from './Link';
-
-type Props = {
-  title: string;
-  isActive?: boolean;
-  action?: ReactNode;
-  onClick?: () => void;
-  subTitle?: string;
-};
-
-const ActionIcon = (props: { children: ReactNode; onClick?: (event: React.MouseEvent<HTMLAnchorElement>) => void }) => {
+import { Button } from '@/design-system'
+import type { ReactNode } from 'react'
+import './ConfigCard.less'
+export function ConfigCard({
+  title,
+  isActive,
+  onClick,
+  action,
+  meta,
+  subTitle,
+}: {
+  title: string
+  isActive?: boolean
+  onClick?: () => void
+  action?: ReactNode
+  meta?: string
+  subTitle?: string
+}) {
   return (
-    <Link
-      hoverable={false}
-      onClick={e => {
-        e.stopPropagation();
-        props.onClick?.(e);
-      }}
-    >
-      <div className={styles['action-icon-wrapper']}>{props.children}</div>
-    </Link>
-  );
-};
-
-export const ConfigCard = ({ title, action, isActive, onClick, subTitle }: Props) => {
-  return (
-    <div
-      className={cs(styles.wrapper, isActive && styles.active)}
-      onClick={() => {
-        onClick?.();
-      }}
-    >
-      <div className={styles.content}>
-        <Link
-          canceldUnderline={true}
-          hoverable={false}
-          style={{
-            width: '100%',
-            overflow: 'hidden',
-            whiteSpace: 'nowrap',
-            textOverflow: 'ellipsis'
-          }}
-          title={title}
-        >
-          {title}
-        </Link>
-        {subTitle ? (
-          <Typography.Paragraph
-            ellipsis={{ rows: 1 }}
-            style={{ marginTop: 1, marginBottom: 0 }}
-            className={styles.subTitle}
-          >
-            {subTitle}
-          </Typography.Paragraph>
-        ) : null}
-      </div>
-      {action && <div className={styles.action}>{action}</div>}
-    </div>
-  );
-};
-
-ConfigCard.ActionIcon = ActionIcon;
+    <article className={`config-card ${isActive ? 'is-active' : ''}`}>
+      <Button variant="text" className="config-card-select" onClick={onClick}>
+        <strong>{title}</strong>
+        {subTitle && <span>{subTitle}</span>}
+        {meta && <small>{meta}</small>}
+        <small className="config-status">{isActive ? '✓ 当前使用' : '设为当前'}</small>
+      </Button>
+      <div className="config-card-actions">{action}</div>
+    </article>
+  )
+}

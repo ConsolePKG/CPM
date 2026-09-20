@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [],
+  "categories": {
+    "correctness": "off",
+    "suspicious": "off",
+    "perf": "off"
+  },
+  "rules": {
+    "react/react-in-jsx-scope": "off",
+    "import/no-unassigned-import": "off"
+  },
+  "env": {
+    "builtin": true,
+    "browser": true,
+    "es2024": true,
+    "jest": true
+  },
+  "ignorePatterns": ["**/dist/**", "**/types/**", "**/node_modules/**"]
+}

@@ -1,27 +1,17 @@
 {
   "compilerOptions": {
-    "strict": true,
-    "target": "ES2015",
-    "module": "CommonJS",
-    "noImplicitAny": false,
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "jsx": "react-jsx",
-    "baseUrl": "./",
-    "declaration": false,
-    "resolveJsonModule": true,
-    "experimentalDecorators": false,
-    "allowSyntheticDefaultImports": true,
+    "strict": false,
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noImplicitAny": false,
+    "forceConsistentCasingInFileNames": true,
     "noEmit": true
   },
-  "exclude": [
-    "node_modules",
-    "dist"
-  ],
-  "ts-node": {
-    "compilerOptions": {
-      "module": "commonjs"
-    }
-  }
+  "exclude": ["node_modules", "dist", "types"]
 }

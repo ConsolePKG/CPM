@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./infra/tools" },
+    { "path": "./packages/ps4-pkg-info" },
+    { "path": "./packages/common" },
+    { "path": "./apps/web" },
+    { "path": "./apps/desktop" }
+  ]
+}

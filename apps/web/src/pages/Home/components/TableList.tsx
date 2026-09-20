@@ -1,91 +1,43 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
-import { Dropdown, Menu, Table, TableColumnProps } from '@arco-design/web-react';
-import { IconFile, IconFolder } from '@arco-design/web-react/icon';
-import { PkgListClickAction } from 'common/types/configStore';
-import dayjs from 'dayjs';
-
-import { Link } from '@/components/Link';
-import { FileStat } from '@/types';
-import { formatFileSize, formatPkgName } from '@/utils';
-
+import { PkgListClickAction } from 'common/types/configStore'
+import type { FileStat } from '@/types'
+import { Button, Empty, Spin } from '@/design-system'
+import { formatFileSize, formatPkgName } from '@/utils'
+import { GameActions } from './GameActions'
 export type TableListProps = {
-  handleInstallByActionType: (data: FileStat, clickAction: PkgListClickAction) => void;
-  displayPkgRawTitle?: boolean;
-  loading?: boolean;
-  data: FileStat[];
-};
-
-export const TableList = ({ handleInstallByActionType, displayPkgRawTitle, loading, data }: TableListProps) => {
-  const columns: TableColumnProps<FileStat>[] = [
-    {
-      title: 'FileName',
-      dataIndex: 'basename',
-      ellipsis: true,
-      render: (val, record) => (
-        <Dropdown
-          key={record.filename}
-          trigger="contextMenu"
-          position="bl"
-          disabled={record.type === 'directory'}
-          droplist={
-            <Menu>
-              <Menu.Item
-                key="1"
-                onClick={() => {
-                  handleInstallByActionType(record, PkgListClickAction.install);
-                }}
-              >
-                Install
-              </Menu.Item>
-              <Menu.Item
-                key="2"
-                onClick={() => {
-                  handleInstallByActionType(record, PkgListClickAction.detail);
-                }}
-              >
-                Detail
-              </Menu.Item>
-            </Menu>
-          }
-        >
-          <div>
-            <Link hoverable={false} onClick={() => handleInstallByActionType(record, PkgListClickAction.auto)}>
-              {record.type === 'directory' ? (
-                <IconFolder style={{ marginRight: 6 }} />
-              ) : (
-                <IconFile style={{ marginRight: 6 }} />
-              )}
-              {formatPkgName(record, displayPkgRawTitle)}
-            </Link>
-          </div>
-        </Dropdown>
-      )
-    },
-    {
-      title: 'Size',
-      dataIndex: 'size',
-      align: 'right',
-      ellipsis: true,
-      render: val => (val ? formatFileSize(val) : '-')
-    },
-    {
-      title: 'Last Modified',
-      dataIndex: 'lastmod',
-      align: 'right',
-      ellipsis: true,
-      render: val => (val ? dayjs(val).format('YYYY-MM-DD HH:mm') : '-')
-    }
-  ];
-
+  handleInstallByActionType: (file: FileStat, action: PkgListClickAction) => void
+  displayPkgRawTitle?: boolean
+  loading?: boolean
+  data: FileStat[]
+}
+export function TableList({ data, loading, displayPkgRawTitle, handleInstallByActionType }: TableListProps) {
+  if (loading) return <Spin />
+  if (!data.length) return <Empty description="没有找到符合条件的游戏" />
   return (
-    <Table
-      border={false}
-      size="small"
-      pagination={false}
-      data={data}
-      columns={columns}
-      loading={loading}
-      rowKey="filename"
-    />
-  );
-};
+    <div className="file-table-wrap">
+      <table className="file-table">
+        <thead>
+          <tr>
+            <th>文件名</th>
+            <th>大小</th>
+            <th>修改时间</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((file) => (
+            <tr key={file.filename}>
+              <td>
+                <GameActions file={file} onAction={handleInstallByActionType}>
+                  <Button variant="text" onClick={() => handleInstallByActionType(file, PkgListClickAction.auto)}>
+                    {formatPkgName(file, displayPkgRawTitle)}
+                  </Button>
+                </GameActions>
+              </td>
+              <td>{file.type === 'directory' ? '文件夹' : formatFileSize(file.size)}</td>
+              <td>{file.lastmod ? new Date(file.lastmod).toLocaleString() : '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}

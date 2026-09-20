@@ -1,0 +1,45 @@
+{
+  "name": "infra-tools",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "exports": {
+    "./rsbuild": {
+      "import": "./src/rsbuild/index.ts"
+    },
+    "./rsbuild/electron": {
+      "import": "./src/rsbuild/electron.ts"
+    },
+    "./rslib": {
+      "import": "./src/rslib/index.ts"
+    },
+    "./rstest": {
+      "import": "./src/rstest/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "RSLIB_DTS=true rslib build",
+    "dev": "RSLIB_DTS=true rslib build -w",
+    "lint": "oxlint src --deny-warnings",
+    "format:check": "oxfmt src --check"
+  },
+  "dependencies": {
+    "@rsbuild/core": "2.2.8",
+    "@rsbuild/plugin-less": "2.0.1",
+    "@rsbuild/plugin-react": "2.1.0",
+    "@rsbuild/plugin-source-build": "1.0.7",
+    "@rslib/core": "1.0.1",
+    "@rstest/adapter-rsbuild": "0.12.0",
+    "@rstest/adapter-rslib": "0.12.0",
+    "@rstest/core": "0.12.0",
+    "@types/node": "22",
+    "glob": "13.0.6",
+    "oxlint": "1.83.0",
+    "oxfmt": "0.68.0",
+    "rsbuild-plugin-devtools-json": "1.0.1",
+    "typescript": "7.0.2"
+  }
+}

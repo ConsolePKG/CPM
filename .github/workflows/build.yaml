@@ -102,7 +102,7 @@ jobs:
           name: PS4RPS-linux-deb-amd64
           path: apps/desktop/output/*amd64.deb
           if-no-files-found: ignore
-      
+
       - name: upload-artifact-linux-deb-arm64
         uses: actions/upload-artifact@v3
         if: matrix.os == 'ubuntu-latest'

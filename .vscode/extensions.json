@@ -1,7 +1,3 @@
 {
-  "recommendations": [
-    "esbenp.prettier-vscode",
-    "dbaeumer.vscode-eslint",
-    "clinyong.vscode-css-modules"
-  ]
+  "recommendations": ["esbenp.prettier-vscode", "dbaeumer.vscode-eslint", "clinyong.vscode-css-modules"]
 }

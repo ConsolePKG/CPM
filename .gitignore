@@ -7,4 +7,11 @@ dist
 output
 tsconfig.tsbuildinfo
 packages/ps4-pkg-info/web
-.turbo
+packages/ps4-pkg-info/types
+
+# Local configuration and generated workspace declarations
+.env
+.env.*
+!.env.example
+infra/tools/types/
+infra/tools/rslib.config.d.ts

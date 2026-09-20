@@ -18,17 +18,17 @@ npm i @njzy/ps4-pkg-info
 
 ```ts
 // nodejs
-import { getPs4PkgInfo } from "@njzy/ps4-pkg-info";
+import { getPs4PkgInfo } from '@njzy/ps4-pkg-info'
 // browser
-import { getPs4PkgInfo } from "@njzy/ps4-pkg-info/web";
+import { getPs4PkgInfo } from '@njzy/ps4-pkg-info/web'
 
-getPs4PkgInfo("nodejs: filePath or browser: fileUrl")
-  .then(res => {
-    console.log(res);
+getPs4PkgInfo('nodejs: filePath or browser: fileUrl')
+  .then((res) => {
+    console.log(res)
   })
-  .catch(err => {
-    console.error(err);
-  });
+  .catch((err) => {
+    console.error(err)
+  })
 ```
 
 ### Options

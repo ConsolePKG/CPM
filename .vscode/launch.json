@@ -7,10 +7,7 @@
     {
       "name": "Desktop Debug",
       "preLaunchTask": "Desktp",
-      "configurations": [
-        "Desktop Attach",
-        "Web Attach"
-      ],
+      "configurations": ["Desktop Attach", "Web Attach"],
       "presentation": {
         "hidden": false,
         "group": "Desktp",
@@ -25,9 +22,7 @@
       "request": "attach",
       "cwd": "${workspaceFolder}/apps/desktop",
       "restart": true,
-      "skipFiles": [
-        "<node_internals>/**"
-      ],
+      "skipFiles": ["<node_internals>/**"],
       "type": "pwa-node",
       "presentation": {
         "hidden": false,
@@ -55,6 +50,6 @@
       "type": "chrome",
       "url": "http://localhost:8831",
       "webRoot": "${workspaceFolder}/apps/web"
-    },
+    }
   ]
 }

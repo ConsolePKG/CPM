@@ -12,12 +12,17 @@
 .img-wrapper {
   position: relative;
   width: 100%;
-  padding-bottom: 100%;
-  transition: box-shadow 0.2s ease-in-out 0s, transform 0.2s ease-in-out 0s;
-  border-radius: var(--rps-img-border-radius);
+  aspect-ratio: 2 / 3;
+  padding-bottom: 0;
+  transition:
+    box-shadow 0.2s ease-in-out 0s,
+    transform 0.2s ease-in-out 0s;
+  border-radius: 3px;
+  overflow: hidden;
   img {
     .absolute-full();
     border-radius: inherit;
+    object-fit: cover;
   }
   .loading-wrapper {
     .absolute-full();
@@ -30,6 +35,6 @@
   }
 }
 
-body[arco-theme='dark'] .img-wrapper:hover {
+body.dark-mode .img-wrapper:hover {
   box-shadow: 0 @space-2 @space-3 0 rgba(255, 255, 255, 0.8);
 }

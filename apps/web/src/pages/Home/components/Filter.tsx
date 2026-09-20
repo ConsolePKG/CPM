@@ -1,147 +1,175 @@
-import { Breadcrumb, Button, Input, Menu, Radio, Space } from '@arco-design/web-react';
-import { IconApps, IconHome, IconList, IconSearch, IconSync } from '@arco-design/web-react/icon';
-import cs from 'classnames';
-import { PkgListUIType } from 'common/types/configStore';
-import { useRef } from 'react';
-
-import { Divider } from '@/components/Divider';
-import { Link } from '@/components/Link';
-import { useIsOverflow } from '@/hooks/useIsOverflow';
-import { useContainer } from '@/store/container';
-
-import styles from './Filter.module.less';
-
-export const Filter = () => {
-  const { fileServer, settings, chnageSettings } = useContainer();
-  const { getServerFileListData, paths, setPaths, searchKeyWord, setSearchKeyWord, loading, pkgInfoDataLoading } =
-    fileServer;
-
-  const breadcrumbRef = useRef(null);
-
-  const isOverflow = useIsOverflow(breadcrumbRef, { isVerticalOverflow: false });
-  const isBreadcrumbOverflow = isOverflow && paths.length > 2;
-
+import { Slider } from '@base-ui/react/slider'
+import { ArrowLeft, RefreshCw, Search, Sliders, X } from 'react-feather'
+import { useRef, useState } from 'react'
+import { PkgListUIType } from 'common/types/configStore'
+import { Button, IconButton, Input, Popover, SegmentedControl, Select } from '@/design-system'
+import { useContainer } from '@/store/container'
+import type { ContentFilter, LibrarySort } from '../library'
+export function Filter({
+  count,
+  category,
+  setCategory,
+  sort,
+  setSort,
+  cardSize,
+  setCardSize,
+}: {
+  count: number
+  category: ContentFilter
+  setCategory: (value: ContentFilter) => void
+  sort: LibrarySort
+  setSort: (value: LibrarySort) => void
+  cardSize: number
+  setCardSize: (value: number) => void
+}) {
+  const { fileServer, settings, chnageSettings } = useContainer()
+  const {
+    searchKeyWord,
+    setSearchKeyWord,
+    curHost,
+    paths,
+    setPaths,
+    loading,
+    pkgInfoDataLoading,
+    getServerFileListData,
+  } = fileServer
+  const [searchOpen, setSearchOpen] = useState(Boolean(searchKeyWord))
+  const [filterOpen, setFilterOpen] = useState(false)
+  const searchRef = useRef<HTMLInputElement>(null)
   return (
-    <div className={styles.wrapper}>
-      <div className={styles.filter} style={{ position: 'relative' }}>
-        <Breadcrumb
-          ref={breadcrumbRef}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            overflow: 'hidden',
-            marginRight: 10,
-            visibility: isBreadcrumbOverflow ? 'hidden' : 'visible'
-          }}
+    <div className="library-toolbar">
+      <div className="library-toolbar-left">
+        <Popover
+          title="筛选与显示"
+          hover
+          open={filterOpen}
+          onOpenChange={setFilterOpen}
+          trigger={
+            <IconButton label="筛选游戏" className={category !== 'all' ? 'filter-active' : ''}>
+              <Sliders />
+            </IconButton>
+          }
         >
-          {paths.length === 0 ? (
-            <Breadcrumb.Item>
-              <Link>
-                <IconHome />
-              </Link>
-            </Breadcrumb.Item>
-          ) : (
-            paths.map((path, index) => (
-              <Breadcrumb.Item key={path || '/'}>
-                <Link
-                  style={{ whiteSpace: 'nowrap' }}
-                  onClick={() => {
-                    if (index !== paths.length - 1) {
-                      setPaths(paths.slice(0, index + 1));
-                    }
-                  }}
-                >
-                  {index !== paths.length - 1 ? (
-                    index === 0 ? (
-                      <IconHome />
-                    ) : (
-                      <span title={path}>{path}</span>
-                    )
-                  ) : index === 0 ? (
-                    <IconHome />
-                  ) : (
-                    <span title={path}>{path}</span>
-                  )}
-                </Link>
-              </Breadcrumb.Item>
-            ))
-          )}
-        </Breadcrumb>
-        {isBreadcrumbOverflow && (
-          <Breadcrumb
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              overflow: 'hidden',
-              marginRight: 10,
-              position: 'absolute'
-            }}
-          >
-            <Breadcrumb.Item key={'/'}>
-              <Link
-                style={{ whiteSpace: 'nowrap' }}
+          <div className="library-filters">
+            <label>内容类型</label>
+            <SegmentedControl
+              label="内容类型"
+              value={category}
+              onChange={setCategory}
+              options={[
+                { value: 'all', label: '全部' },
+                { value: 'base', label: '本体' },
+                { value: 'patch', label: '补丁' },
+                { value: 'addon', label: 'DLC' },
+              ]}
+            />
+            <label>显示方式</label>
+            <SegmentedControl
+              label="显示方式"
+              value={settings.pkgListUIType}
+              onChange={(pkgListUIType) => chnageSettings({ pkgListUIType })}
+              options={[
+                { value: PkgListUIType.card, label: '封面网格' },
+                { value: PkgListUIType.table, label: '文件列表' },
+              ]}
+            />
+            <label>封面尺寸</label>
+            <Slider.Root
+              value={cardSize}
+              onValueChange={(value) => setCardSize(Number(value))}
+              min={150}
+              max={260}
+              step={10}
+              className="cover-slider"
+            >
+              <Slider.Control>
+                <Slider.Track>
+                  <Slider.Indicator />
+                  <Slider.Thumb aria-label="封面尺寸" />
+                </Slider.Track>
+              </Slider.Control>
+            </Slider.Root>
+            <div className="filter-footer">
+              <Button
+                variant="text"
                 onClick={() => {
-                  setPaths(paths.slice(0, 1));
+                  setCategory('all')
+                  setSort('name')
+                  setCardSize(200)
+                  chnageSettings({ pkgListUIType: PkgListUIType.card })
                 }}
               >
-                <IconHome />
-              </Link>
-            </Breadcrumb.Item>
-            <Breadcrumb.Item
-              key={paths.length - 1}
-              droplist={
-                <Menu style={{ maxWidth: 400 }}>
-                  {paths.slice(1).map((path, index) => (
-                    <Menu.Item
-                      key={path}
-                      onClick={() => {
-                        setPaths(paths.slice(0, index + 2));
-                      }}
-                    >
-                      {path}
-                    </Menu.Item>
-                  ))}
-                </Menu>
-              }
-            >
-              <Link style={{ whiteSpace: 'nowrap' }}>
-                <span title={paths[paths.length - 1]}>{paths[paths.length - 1]}</span>
-              </Link>
-            </Breadcrumb.Item>
-          </Breadcrumb>
-        )}
-        <Space style={{ flexShrink: 0 }}>
-          <Input
-            prefix={<IconSearch />}
-            placeholder="Input pkg name"
-            allowClear
-            value={searchKeyWord}
-            onChange={setSearchKeyWord}
-          />
-          <Radio.Group
-            type="button"
-            value={settings.pkgListUIType}
-            onChange={value => chnageSettings({ pkgListUIType: value })}
-          >
-            <Radio value={PkgListUIType.card}>
-              <IconApps />
-            </Radio>
-            <Radio value={PkgListUIType.table}>
-              <IconList />
-            </Radio>
-          </Radio.Group>
-          <Button icon={<IconSync />} type="primary" onClick={() => getServerFileListData()} />
-        </Space>
-      </div>
-      {
-        <Divider
-          style={{ marginBottom: 0 }}
-          className={cs(
-            loading && styles['loading-line'],
-            !loading && pkgInfoDataLoading && styles['loading-line-purple']
+                重置
+              </Button>
+              <Button type="primary" onClick={() => setFilterOpen(false)}>
+                完成
+              </Button>
+            </div>
+          </div>
+        </Popover>
+        <h1>全部游戏</h1>
+        <span className="library-count">{count}</span>
+        <nav className="library-path" aria-label="资源路径">
+          {paths.length > 1 && (
+            <IconButton label="上一级文件夹" variant="text" onClick={() => setPaths(paths.slice(0, -1))}>
+              <ArrowLeft />
+            </IconButton>
           )}
+          <Button variant="text" onClick={() => setPaths([])}>
+            {curHost?.alias || '资源'}
+          </Button>
+          {paths.filter(Boolean).map((path, index) => (
+            <span key={index}> / {path}</span>
+          ))}
+        </nav>
+      </div>
+      <div className="library-toolbar-right">
+        <IconButton
+          label="刷新游戏库"
+          variant="text"
+          loading={loading || pkgInfoDataLoading}
+          onClick={() => getServerFileListData()}
+        >
+          <RefreshCw />
+        </IconButton>
+        <Select
+          label="排序方式"
+          value={sort}
+          onChange={setSort}
+          options={[
+            { value: 'name', label: '名称排序' },
+            { value: 'recent', label: '最近修改' },
+            { value: 'size', label: '文件大小' },
+          ]}
         />
-      }
+        <div className="library-search">
+          {searchOpen && (
+            <Input
+              ref={searchRef}
+              aria-label="搜索游戏"
+              placeholder="搜索游戏…"
+              autoFocus
+              value={searchKeyWord}
+              onChange={setSearchKeyWord}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setSearchKeyWord('')
+                  setSearchOpen(false)
+                }
+              }}
+            />
+          )}
+          <IconButton
+            label={searchOpen ? '收起搜索' : '搜索游戏'}
+            onClick={() => {
+              setSearchOpen(!searchOpen)
+              if (searchOpen) setSearchKeyWord('')
+            }}
+          >
+            {searchOpen ? <X /> : <Search />}
+          </IconButton>
+        </div>
+      </div>
     </div>
-  );
-};
+  )
+}

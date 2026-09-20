@@ -1,5 +1,4 @@
-@import './customProperties.less';
-
+@import './design-system/tokens.less';
 *,
 *::before,
 *::after {
@@ -8,57 +7,65 @@
 * {
   margin: 0;
 }
-
 html,
 body,
 #root {
-  height: 100%;
-  background: var(--rps-bg-primary);
-  color: var(--rps-text-primary);
-  .global-app-wrapper,
-  .global-content-wrapper {
-    height: 100%;
-  }
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
 }
-
-.arco-breadcrumb {
-  background: var(--rps-bg-primary);
+body {
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    'PingFang SC',
+    'Segoe UI',
+    sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
-
-.global-app-wrapper.title-bar-divider {
-  border-top: 1px solid var(--rps-border-color);
+button,
+input,
+select {
+  font: inherit;
 }
-
-.global-scroll-bar {
-  /* Customize website's scrollbar like Mac OS
-
-  /* total width */
-  *::-webkit-scrollbar {
-    background-color: var(--rps-bg-primary);
-    width: 16px;
-  }
-
-  /* background of the scrollbar except button or resizer */
-  *::-webkit-scrollbar-track {
-    background-color: var(--rps-bg-primary);
-  }
-  *::-webkit-scrollbar-track:hover {
-    background-color: transparent;
-  }
-
-  /* scrollbar itself */
-  *::-webkit-scrollbar-thumb {
-    background-color: rgb(var(--gray-4));
-    border-radius: 16px;
-    border: 5px solid var(--rps-bg-primary);
-  }
-  *::-webkit-scrollbar-thumb:hover {
-    background-color: rgb(var(--gray-5));
-    border: 4px solid rgb(var(--gray-2));
-  }
-
-  /* set button(top and bottom of the scrollbar) */
-  *::-webkit-scrollbar-button {
-    display: none;
+button,
+a,
+input {
+  -webkit-tap-highlight-color: transparent;
+}
+button {
+  cursor: pointer;
+}
+svg {
+  flex-shrink: 0;
+}
+img {
+  max-width: 100%;
+}
+a {
+  color: inherit;
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+::selection {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-3) transparent;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

@@ -1,22 +1,22 @@
-import { app, BrowserWindow } from 'electron';
-import path from 'path';
+import { app, BrowserWindow } from 'electron'
+import path from 'path'
 
-import { Ipc } from './ipc';
+import { Ipc } from './ipc'
 
-const isDev = process.env.NODE_ENV === 'development';
+const isDev = process.env.NODE_ENV === 'development'
 
 export class WindowManager {
-  private static instance: WindowManager;
+  private static instance: WindowManager
 
   static getInstance() {
     if (!WindowManager.instance) {
-      WindowManager.instance = new WindowManager();
+      WindowManager.instance = new WindowManager()
     }
-    return WindowManager.instance;
+    return WindowManager.instance
   }
 
-  mainWindow?: BrowserWindow;
-  isQuitting?: boolean;
+  mainWindow?: BrowserWindow
+  isQuitting?: boolean
 
   createWindow(): BrowserWindow {
     const window = new BrowserWindow({
@@ -30,43 +30,43 @@ export class WindowManager {
       webPreferences: {
         preload: path.join(__dirname, './preload.js'),
         nodeIntegration: true,
-        webSecurity: false
+        webSecurity: false,
         // enableRemoteModule: true
-      }
-    });
+      },
+    })
 
-    window.on('close', evnet => {
+    window.on('close', (evnet) => {
       if (!this.isQuitting && process.platform === 'darwin') {
-        evnet.preventDefault();
-        window.hide();
+        evnet.preventDefault()
+        window.hide()
       }
-    });
+    })
 
     if (isDev) {
-      window.loadURL(`http://localhost:${process.env.RENDERER_DEV_PORT}`);
+      window.loadURL(`http://localhost:${process.env.RENDERER_DEV_PORT}`)
     } else {
-      window.loadFile(path.resolve(__dirname, '../renderer/index.html'));
+      window.loadFile(path.resolve(__dirname, '../renderer/index.html'))
     }
 
-    return window;
+    return window
   }
 
   showWindow() {
-    app?.dock?.show();
+    app?.dock?.show()
     if (BrowserWindow.getAllWindows().length === 0) {
-      this.mainWindow = this.createWindow();
-      Ipc.win = this.mainWindow;
+      this.mainWindow = this.createWindow()
+      Ipc.win = this.mainWindow
     } else {
-      this.mainWindow?.show();
+      this.mainWindow?.show()
     }
   }
 
   handleSecondInstance() {
     if (this.mainWindow && BrowserWindow.getAllWindows().length !== 0) {
       if (this.mainWindow.isMinimized()) {
-        this.mainWindow.restore();
+        this.mainWindow.restore()
       }
-      this.mainWindow.focus();
+      this.mainWindow.focus()
     }
   }
 }

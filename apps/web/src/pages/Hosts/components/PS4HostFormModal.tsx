@@ -1,144 +1,92 @@
-import { Alert, Button, Drawer, Form, Input, Message, Notification, Space } from '@arco-design/web-react';
-import axios from 'axios';
-import { nanoid } from 'nanoid';
-import { useEffect, useState } from 'react';
-
-import { RPILink } from '@/components/WebAlert';
-import { useContainer } from '@/store/container';
-
-const FormItem = Form.Item;
-
-export type FormData = { id?: string; alias?: string; url: string };
-
-type Props = {
-  data?: FormData;
-  visible: boolean;
-  onOk: (data: FormData) => void;
-  onCancel: () => void;
-};
-
-export const PS4HostFormModal = ({ data, visible, onCancel, onOk }: Props) => {
-  const [form] = Form.useForm<FormData>();
-
-  const [testLoading, setTestLoading] = useState(false);
-
+import axios from 'axios'
+import { nanoid } from 'nanoid'
+import { useEffect, useState } from 'react'
+import { Button, Drawer, FormField, Input, Notification, Alert } from '@/design-system'
+import { RPILink } from '@/components/WebAlert'
+import { useContainer } from '@/store/container'
+import { validateConsoleAddress } from '../validation'
+export type FormData = { id?: string; alias?: string; url: string }
+type Props = { data?: FormData; visible: boolean; onOk: (data: FormData) => void; onCancel: () => void }
+export function PS4HostFormModal({ data, visible, onOk, onCancel }: Props) {
   const {
-    ps4Installer: { ps4Hosts }
-  } = useContainer();
-
-  const handleCancel = () => {
-    onCancel();
-    form.resetFields(undefined);
-    setTestLoading(false);
-  };
-
+    ps4Installer: { ps4Hosts },
+  } = useContainer()
+  const [alias, setAlias] = useState('')
+  const [url, setUrl] = useState('')
+  const [error, setError] = useState('')
+  const [testing, setTesting] = useState(false)
   useEffect(() => {
-    if (!data) {
-      return;
+    if (visible) {
+      setAlias(data?.alias || '')
+      setUrl((data?.url || '').replace(/^https?:\/\//, ''))
+      setError('')
     }
-    data.url = data.url.replace(/^https?:\/\//g, '');
-    form.setFieldsValue(data);
-  }, [data]);
-
-  const handleOk = async (isTest = false) => {
-    try {
-      const value = await form.validate();
-      if (value) {
-        value.url =
-          'http://' +
-          value.url
-            .trim()
-            .replace(/^https?:\/\//g, '')
-            .replace(/\/$/, '');
-        if (isTest) {
-          setTestLoading(true);
-          try {
-            await axios.get(value.url + '/api', { timeout: 3000 });
-            throw new Error('failed');
-          } catch (err) {
-            // @ts-ignore
-            if (err?.response?.status === 400 || err?.response?.data?.status === 'fail') {
-              Notification.success({
-                title: 'Connect to PS4 host success',
-                content: ''
-              });
-            } else {
-              Notification.error({
-                title: 'Connect to PS4 host failed',
-                content: 'Please check if the ip and port are correct or rempte pkg installer is running on your ps4'
-              });
-            }
-          }
-          return;
-        }
-        if (!value.id) {
-          value.id = nanoid();
-          if (ps4Hosts.find(item => item.url === value.url)) {
-            Message.error(`The ${value.url} already exists`);
-            return;
-          }
-        }
-        onOk(value);
-        handleCancel();
+  }, [visible, data])
+  const submit = async (test = false) => {
+    const result = validateConsoleAddress(url)
+    if (result.error) {
+      setError(result.error)
+      return
+    }
+    const normalized = result.url!
+    if (!test && ps4Hosts.some((host) => host.id !== data?.id && host.url === normalized)) {
+      setError('此主机地址已存在')
+      return
+    }
+    setError('')
+    if (test) {
+      setTesting(true)
+      try {
+        await axios.get(normalized + '/api', { timeout: 3000 })
+        Notification.error('连接失败，请检查主机地址和 RPI 是否运行。')
+      } catch (err) {
+        if (axios.isAxiosError(err) && (err.response?.status === 400 || err.response?.data?.status === 'fail'))
+          Notification.success('已连接到 PS4 主机')
+        else Notification.error('连接失败，请检查 IP、端口及 Remote Package Installer。')
+      } finally {
+        setTesting(false)
       }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setTestLoading(false);
+    } else {
+      onOk({ id: data?.id || nanoid(), alias: alias.trim(), url: normalized })
+      onCancel()
     }
-  };
-
+  }
   return (
     <Drawer
       visible={visible}
-      title={!data?.id ? 'Create PS4 Host Config' : 'Edit PS4 Host Config'}
-      onCancel={handleCancel}
+      title={data?.id ? '编辑 PS4 主机' : '添加 PS4 主机'}
+      onCancel={onCancel}
       footer={
-        <Space>
-          <Button onClick={handleCancel}>Cancel</Button>
-          <Button
-            onClick={() => {
-              handleOk(true);
-            }}
-            loading={testLoading}
-          >
-            Connect Test
+        <>
+          <Button onClick={onCancel}>取消</Button>
+          <Button loading={testing} onClick={() => submit(true)}>
+            连接测试
           </Button>
-          <Button type="primary" onClick={() => handleOk()}>
-            Confirm
+          <Button type="primary" onClick={() => submit()}>
+            确认
           </Button>
-        </Space>
+        </>
       }
-      width="50%"
     >
-      <Form form={form} layout="vertical" initialValues={undefined} requiredSymbol={{ position: 'end' }}>
-        <FormItem label="Id" field="id" style={{ display: 'none' }}>
-          <Input />
-        </FormItem>
-        <FormItem label="Alias" field="alias">
-          <Input />
-        </FormItem>
-        <FormItem
-          label="URL"
-          field="url"
-          rules={[{ required: true, message: 'Please input ps4 ip and port' }]}
-          extra="For example: 192.168.0.2:12800, port is required, usually is 12800 or 12801"
-        >
-          <Input addBefore="http://" autoFocus />
-        </FormItem>
+      <form
+        className="cpm-form"
+        onSubmit={(e) => {
+          e.preventDefault()
+          submit()
+        }}
+      >
+        <FormField label="别名">
+          <Input value={alias} onChange={setAlias} placeholder="PS4 · 客厅" />
+        </FormField>
+        <FormField label="主机地址" error={error} hint="请填写 IP 与端口，常用端口为 12800 或 12801。">
+          <Input value={url} onChange={setUrl} prefix="http://" placeholder="192.168.1.108:12801" autoFocus required />
+        </FormField>
         {!data?.id && (
-          <Alert
-            type="info"
-            content={
-              <>
-                I recommend using my modified Remote Pkg Installer on your ps4. This version fixes the problem that the
-                path with spaces or Chinese characters cannot be installed, and adds ip and port tips at startup:{' '}
-                <RPILink /> (default port is 12801)
-              </>
-            }
-          />
+          <Alert>
+            主机上需要运行 Remote Package Installer。建议使用支持中文和空格路径的 <RPILink />。
+          </Alert>
         )}
-      </Form>
+      </form>
     </Drawer>
-  );
-};
+  )
+}

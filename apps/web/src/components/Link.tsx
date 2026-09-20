@@ -1,16 +1,18 @@
-import { Link as ArcoLink, LinkProps as ArcoLinkProps } from '@arco-design/web-react';
-import cs from 'classnames';
+import { Link as BaseLink } from '@/components/ui'
+import cs from 'classnames'
+import type React from 'react'
 
-import styles from './Link.module.less';
+import styles from './Link.module.less'
 
-type LinkProps = ArcoLinkProps & {
-  canceldUnderline?: boolean;
-};
+type LinkProps = React.AnchorHTMLAttributes<HTMLAnchorElement> & {
+  canceldUnderline?: boolean
+  hoverable?: boolean
+}
 
 export const Link = ({ canceldUnderline, ...props }: LinkProps) => {
   return (
-    <ArcoLink {...props} className={cs(styles.link, canceldUnderline && styles.cancelUnderline, props.className)}>
+    <BaseLink {...props} className={cs(styles.link, canceldUnderline && styles.cancelUnderline, props.className)}>
       {props.children}
-    </ArcoLink>
-  );
-};
+    </BaseLink>
+  )
+}

@@ -1,15 +1,4 @@
 {
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "outDir": "dist",
-    "noEmit": false,
-    "sourceMap": true,
-    "declaration": true,
-    "esModuleInterop": true,
-    "isolatedModules": false,
-    "baseUrl": "./"
-  },
-  "include": [
-    "src"
-  ]
+  "extends": "../../tsconfig.module.json",
+  "include": ["src/**/*.ts", "../../global.d.ts"]
 }

@@ -1,15 +1,11 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "../../tsconfig.app.json",
   "compilerOptions": {
-    "baseUrl": "./",
     "paths": {
-      "@/*": [
-        "src/*"
-      ]
-    }
+      "@/*": ["./src/*"]
+    },
+    "types": ["node"]
   },
-  "include": [
-    "**/*",
-    "../../packages/common/**/*",
-  ]
+  "include": ["src/**/*", "rsbuild.config.ts", "scripts/**/*.mjs", "../../global.d.ts"],
+  "references": [{ "path": "../../packages/common" }, { "path": "../../packages/ps4-pkg-info" }]
 }

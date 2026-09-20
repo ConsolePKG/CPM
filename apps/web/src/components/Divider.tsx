@@ -1,9 +1,9 @@
-import { CSSProperties } from 'react';
+import { CSSProperties } from 'react'
 
 type Props = {
-  className?: string;
-  style?: CSSProperties;
-};
+  className?: string
+  style?: CSSProperties
+}
 
 export const Divider = ({ className, style }: Props) => {
   return (
@@ -14,8 +14,8 @@ export const Divider = ({ className, style }: Props) => {
         margin: '10px 0',
         width: '100%',
         background: 'var(--rps-border-color)',
-        ...style
+        ...style,
       }}
     ></div>
-  );
-};
+  )
+}

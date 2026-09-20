@@ -1,20 +1,20 @@
 /** https://www.psdevwiki.com/ps4/Param.sfo */
 
 export type Ps4PkgParamSfo = {
-  APP_TYPE: Ps4PkgAppType;
-  APP_VER: string;
-  ATTRIBUTE: number;
-  CATEGORY: Ps4PkgCategory;
-  CONTENT_ID: string;
-  DOWNLOAD_DATA_SIZE: number;
-  PUBTOOLINFO: string;
-  PUBTOOLVER: number;
-  SYSTEM_VER: number;
-  TITLE: string;
-  TITLE_ID: string;
-  VERSION: string;
-  [prop: string]: string | number;
-};
+  APP_TYPE: Ps4PkgAppType
+  APP_VER: string
+  ATTRIBUTE: number
+  CATEGORY: Ps4PkgCategory
+  CONTENT_ID: string
+  DOWNLOAD_DATA_SIZE: number
+  PUBTOOLINFO: string
+  PUBTOOLVER: number
+  SYSTEM_VER: number
+  TITLE: string
+  TITLE_ID: string
+  VERSION: string
+  [prop: string]: string | number
+}
 
 export enum Ps4PkgAppType {
   /** Not Specified */
@@ -27,7 +27,7 @@ export enum Ps4PkgAppType {
 e.g. A non-upgradable demo application, a free full application without an AC, applications created for specific events */
   Demo,
   /** free full application that comes with paid additional contents. This application may have trophies of freemium game scope. */
-  Freemium
+  Freemium,
 }
 
 export enum Ps4PkgCategory {
@@ -50,5 +50,5 @@ export enum Ps4PkgCategory {
   MiniAppPatch = 'gpe',
   VideoServiceWebAppPatch = 'gpk',
   PSCloudBetaAppPatch = 'gpl',
-  SaveData = 'sd'
+  SaveData = 'sd',
 }

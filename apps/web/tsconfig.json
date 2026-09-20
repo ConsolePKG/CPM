@@ -1,23 +1,11 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "../../tsconfig.app.json",
   "compilerOptions": {
-    "isolatedModules": true,
-    "module": "ESNext",
-    "moduleResolution": "Node",
-    "baseUrl": "./",
     "paths": {
-      "@/*": [
-        "src/*"
-      ]
-    }
+      "@/*": ["./src/*"]
+    },
+    "types": ["@rsbuild/core/types"]
   },
-  "include": [
-    "**/*",
-    "../../packages/common/**/*",
-  ],
-  "references": [
-    {
-      "path": "./tsconfig.node.json"
-    }
-  ]
+  "include": ["src/**/*", "rsbuild.config.ts", "../../global.d.ts"],
+  "references": [{ "path": "../../packages/common" }, { "path": "../../packages/ps4-pkg-info" }]
 }

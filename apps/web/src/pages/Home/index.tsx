@@ -1,89 +1,61 @@
-import { Spin } from '@arco-design/web-react';
-import { PkgListClickAction, PkgListUIType } from 'common/types/configStore';
-import { lazy, Suspense, useState } from 'react';
-
-import { useContainer } from '@/store/container';
-import { FileStat } from '@/types';
-
-import { DetailDrawer } from './components/DetailDrawer';
-import { FileServerHostEmpty } from './components/FileServerHostEmpty';
-import { Filter } from './components/Filter';
-import { TableList, TableListProps } from './components/TableList';
-
-const CardList = lazy(() => import('./components/CardList'));
-
-export const Home = () => {
+import { PkgListClickAction, PkgListUIType } from 'common/types/configStore'
+import { useState, type CSSProperties } from 'react'
+import { useContainer } from '@/store/container'
+import type { FileStat } from '@/types'
+import { FileServerHostEmpty } from './components/FileServerHostEmpty'
+import { Filter } from './components/Filter'
+import { CardList } from './components/CardList'
+import { TableList } from './components/TableList'
+import { DetailDrawer } from './components/DetailDrawer'
+import { filterLibrary, type ContentFilter, type LibrarySort } from './library'
+import './library.less'
+export function Home() {
   const {
-    fileServer: { fileServerFiles, loading, setPaths, searchKeyWord, fileServerHosts },
+    fileServer: { fileServerFiles, loading, setPaths, searchKeyWord, fileServerHosts, curHost },
+    settings,
     handleInstall,
-    settings
-  } = useContainer();
-
-  const [detailDrawserData, setDetailDrawerData] = useState<{
-    visible: boolean;
-    data?: FileStat;
-  }>({
-    visible: false
-  });
-
-  const handleInstallByActionType = (record: FileStat, clickAction: PkgListClickAction) => {
-    if (record.type === 'directory') {
-      setPaths(record.filename.replace(/\\/g, '/').split('/'));
-    } else {
-      if (
-        (clickAction === PkgListClickAction.auto && settings.pkgListClickAction === PkgListClickAction.install) ||
-        clickAction === PkgListClickAction.install
-      ) {
-        handleInstall(record);
-      } else {
-        setDetailDrawerData({
-          visible: true,
-          data: record
-        });
-      }
-    }
-  };
-
-  const data = fileServerFiles.filter(
-    item =>
-      item.basename.toLowerCase().includes(searchKeyWord.toLowerCase()) ||
-      item.paramSfo?.TITLE.toLowerCase().includes(searchKeyWord.toLowerCase())
-  );
-
-  const props: TableListProps = {
-    data,
-    handleInstallByActionType,
-    loading,
-    displayPkgRawTitle: settings.displayPkgRawTitle
-  };
-
-  if (!fileServerHosts?.length) {
-    return <FileServerHostEmpty />;
+  } = useContainer()
+  const [detail, setDetail] = useState<FileStat>()
+  const [category, setCategory] = useState<ContentFilter>('all')
+  const [sort, setSort] = useState<LibrarySort>('name')
+  const [cardSize, setCardSize] = useState(200)
+  const data = filterLibrary(fileServerFiles, searchKeyWord, category, sort, settings.displayPkgRawTitle)
+  const onAction = (file: FileStat, action: PkgListClickAction) => {
+    if (file.type === 'directory') setPaths(file.filename.replace(/\\/g, '/').split('/'))
+    else if (
+      action === PkgListClickAction.install ||
+      (action === PkgListClickAction.auto && settings.pkgListClickAction === PkgListClickAction.install)
+    )
+      void handleInstall(file)
+    else setDetail(file)
   }
-
+  const props = { data, loading, displayPkgRawTitle: settings.displayPkgRawTitle, handleInstallByActionType: onAction }
   return (
-    <>
-      <Filter />
-      {settings?.pkgListUIType === PkgListUIType.table ? (
+    <div className="library" style={{ '--cover-min': `${cardSize}px` } as CSSProperties}>
+      <Filter
+        count={data.filter((file) => file.type !== 'directory').length}
+        category={category}
+        setCategory={setCategory}
+        sort={sort}
+        setSort={setSort}
+        cardSize={cardSize}
+        setCardSize={setCardSize}
+      />
+      {!fileServerHosts.length || !curHost ? (
+        <FileServerHostEmpty />
+      ) : settings.pkgListUIType === PkgListUIType.table ? (
         <TableList {...props} />
       ) : (
-        <Suspense fallback={<Spin />}>
-          <CardList {...props} />
-        </Suspense>
+        <CardList {...props} />
       )}
       <DetailDrawer
-        {...detailDrawserData}
-        handleCancel={() => {
-          setDetailDrawerData({
-            visible: false,
-            data: undefined
-          });
-        }}
+        visible={Boolean(detail)}
+        data={detail}
         displayPkgRawTitle={settings.displayPkgRawTitle}
-        handleInstallByActionType={handleInstallByActionType}
+        handleCancel={() => setDetail(undefined)}
+        handleInstallByActionType={onAction}
       />
-    </>
-  );
-};
-
-export default Home;
+    </div>
+  )
+}
+export default Home

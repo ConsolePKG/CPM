@@ -1,0 +1,120 @@
+.page {
+  max-width: 1160px;
+  margin: 0 auto;
+}
+.toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 30px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #2a475e;
+}
+.eyebrow {
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 800;
+  margin: 0 0 6px;
+}
+.toolbar h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 30px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+.list {
+  display: grid;
+  gap: 12px;
+}
+.card {
+  display: flex;
+  gap: 16px;
+  padding: 18px;
+  background: #1b2838;
+  border: 1px solid #2a475e;
+  border-radius: 3px;
+  box-shadow: 0 8px 22px rgb(0 0 0 / 20%);
+}
+.icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 3px;
+  background: linear-gradient(145deg, var(--accent), #7158ff);
+  display: grid;
+  place-items: center;
+  color: #081018;
+  font-weight: 900;
+  overflow: hidden;
+  flex: none;
+}
+.icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.body {
+  flex: 1;
+  min-width: 0;
+}
+.heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.heading h3 {
+  margin: 0 0 5px;
+  color: var(--text);
+  font-size: 16px;
+}
+.heading span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.status {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.failed {
+  color: #ff9d9d;
+}
+.installing {
+  color: var(--accent);
+}
+.finished {
+  color: #73e2a4;
+}
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.error {
+  margin-top: 10px;
+  padding: 9px 10px;
+  color: #ffb0b0;
+  border-left: 2px solid #d86b6b;
+  background: rgb(160 57 57 / 14%);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.empty {
+  position: relative;
+  padding: 86px 40px;
+  text-align: center;
+  border: 1px solid #2a475e;
+  border-radius: 3px;
+  background: linear-gradient(135deg, #1b2838, #172330);
+  color: var(--muted);
+  font-size: 15px;
+}

@@ -6,7 +6,11 @@
 
 .base-info-wrapper {
   display: flex;
+  min-width: 0;
   img {
+    width: 198px;
+    height: 282px;
+    object-fit: cover;
     border-radius: var(--rps-img-border-radius);
   }
   .info {
@@ -19,7 +23,7 @@
       align-items: center;
       & > div:first-child {
         font-weight: 500;
-        min-width: 120px;
+        min-width: 100px;
         color: var(--rps-text-third);
       }
       & > div:last-child {

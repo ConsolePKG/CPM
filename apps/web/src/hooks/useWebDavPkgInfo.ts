@@ -1,70 +1,70 @@
-import { getPs4PkgInfo, Ps4PkgParamSfo } from '@njzy/ps4-pkg-info/web';
-import { SetStateAction, useEffect, useState } from 'react';
+import { getPs4PkgInfo, Ps4PkgParamSfo } from '@njzy/ps4-pkg-info/web'
+import { SetStateAction, useEffect, useState } from 'react'
 
-import { FileStat } from '@/types';
+import { FileStat } from '@/types'
 
 type Options = {
-  setFileServerFiles: (value: SetStateAction<FileStat[]>) => void;
-};
+  setFileServerFiles: (value: SetStateAction<FileStat[]>) => void
+}
 
 export const useWebDavPkgInfo = ({ setFileServerFiles }: Options) => {
-  const [pkgInfoData, setPkgInfoData] = useState<{ name: string; icon0?: string; paramSfo?: Ps4PkgParamSfo }[]>([]);
-  const [pkgInfoDataLoading, setPkgInfoDataLoading] = useState(false);
+  const [pkgInfoData, setPkgInfoData] = useState<{ name: string; icon0?: string; paramSfo?: Ps4PkgParamSfo }[]>([])
+  const [pkgInfoDataLoading, setPkgInfoDataLoading] = useState(false)
 
   const getWebDavPkgFileInfo = async (data: FileStat[]) => {
     try {
-      const promises = data.map(async item => {
+      const promises = data.map(async (item) => {
         try {
-          const res = await getPs4PkgInfo(item.downloadUrl!);
+          const res = await getPs4PkgInfo(item.downloadUrl!)
           if (res) {
-            const url = res.icon0Raw ? window.URL.createObjectURL(new Blob([res.icon0Raw])) : undefined;
+            const url = res.icon0Raw ? window.URL.createObjectURL(new Blob([new Uint8Array(res.icon0Raw)])) : undefined
             const newData = {
               name: item.basename,
               icon0: url,
-              paramSfo: res.paramSfo
-            };
-            setPkgInfoData(pre => {
-              const curData = pkgInfoData.find(cache => cache.name === item.basename);
+              paramSfo: res.paramSfo,
+            }
+            setPkgInfoData((pre) => {
+              const curData = pkgInfoData.find((cache) => cache.name === item.basename)
               if (curData) {
-                Object.assign(curData, newData);
-                return [...pre];
+                Object.assign(curData, newData)
+                return [...pre]
               } else {
-                pre.push(newData);
+                pre.push(newData)
               }
-              return [...pre];
-            });
+              return [...pre]
+            })
           }
         } catch (err) {
-          return;
+          return
         }
-      });
-      setPkgInfoDataLoading(true);
-      await Promise.all(promises);
+      })
+      setPkgInfoDataLoading(true)
+      await Promise.all(promises)
     } catch (err) {
-      console.error('getWebDavPkgFileInfo', err);
+      console.error('getWebDavPkgFileInfo', err)
     } finally {
-      setPkgInfoDataLoading(false);
+      setPkgInfoDataLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
     if (pkgInfoData.length) {
-      setFileServerFiles(pre => {
-        return pre.map(item => {
-          const curCache = pkgInfoData.find(cache => cache.name === item.basename);
+      setFileServerFiles((pre) => {
+        return pre.map((item) => {
+          const curCache = pkgInfoData.find((cache) => cache.name === item.basename)
           if (curCache) {
-            item.icon0 = curCache.icon0;
-            item.paramSfo = curCache.paramSfo;
+            item.icon0 = curCache.icon0
+            item.paramSfo = curCache.paramSfo
           }
-          return item;
-        });
-      });
+          return item
+        })
+      })
     }
-  }, [pkgInfoData]);
+  }, [pkgInfoData])
 
   return {
     getWebDavPkgFileInfo,
     pkgInfoData,
-    pkgInfoDataLoading
-  };
-};
+    pkgInfoDataLoading,
+  }
+}

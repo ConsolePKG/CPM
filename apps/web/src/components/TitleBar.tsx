@@ -1,13 +1,13 @@
-import cs from 'classnames';
-import { Minus, Square, X } from 'react-feather';
+import cs from 'classnames'
+import { Minus, Square, X } from 'react-feather'
 
 // @ts-ignore
-import icon from '@/assets/icon.png';
+import icon from '@/assets/icon.png'
 
-import styles from './TitleBar.module.less';
+import styles from './TitleBar.module.less'
 
 export const TitleBar = () => {
-  const isMacOS = window.electron && window.electron.platform === 'darwin';
+  const isMacOS = window.electron && window.electron.platform === 'darwin'
 
   return (
     <div className={styles.wrapper} style={{ justifyContent: isMacOS ? 'center' : 'flex-start' }}>
@@ -30,5 +30,5 @@ export const TitleBar = () => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "noEmit": true,
+    "incremental": true,
+    "noEmitOnError": true
+  },
+  "include": ["${configDir}/src", "${configDir}/src/**/*.json", "global.d.ts"]
+}

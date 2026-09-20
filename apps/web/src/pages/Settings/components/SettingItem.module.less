@@ -1,0 +1,36 @@
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  min-height: 78px;
+  padding: 17px 0;
+  border-bottom: 1px solid rgb(42 71 94 / 72%);
+}
+
+.item:last-child {
+  border-bottom: 0;
+}
+
+.copy {
+  min-width: 0;
+}
+
+.copy :global(.cpm-title) {
+  margin: 0 0 5px;
+  color: #e5e7e9;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.copy :global(.cpm-text) {
+  display: block;
+  max-width: 650px;
+  color: #8f98a0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.control {
+  flex: 0 0 auto;
+}

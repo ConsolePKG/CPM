@@ -1,26 +1,26 @@
-import { Link, Notification } from '@arco-design/web-react';
-import { useEffect, useState } from 'react';
+import { Link, Notification } from '@/components/ui'
+import { useEffect, useState } from 'react'
 
-const CacheKey = 'WebAlertV1';
+const CacheKey = 'WebAlertV1'
 
-const LinkUrl = 'https://github.com/njzydark/ps4_remote_pkg_installer-OOSDK/releases';
+const LinkUrl = 'https://github.com/njzydark/ps4_remote_pkg_installer-OOSDK/releases'
 
 export const WebAlert = () => {
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    const cache = localStorage.getItem(CacheKey) === 'true';
-    setVisible(cache ? false : true);
-  }, []);
+    const cache = localStorage.getItem(CacheKey) === 'true'
+    setVisible(cache ? false : true)
+  }, [])
 
   const handleClose = () => {
-    localStorage.setItem(CacheKey, 'true');
-    setVisible(false);
-  };
+    localStorage.setItem(CacheKey, 'true')
+    setVisible(false)
+  }
 
   useEffect(() => {
     if (!visible || window.electron) {
-      return;
+      return
     }
     Notification.warning({
       id: 'web-alert',
@@ -33,9 +33,9 @@ export const WebAlert = () => {
           <Link
             hoverable={false}
             onClick={() => {
-              window.open(LinkUrl);
-              handleClose();
-              Notification.remove('web-alert');
+              window.open(LinkUrl)
+              handleClose()
+              Notification.remove('web-alert')
             }}
           >
             RPI
@@ -44,24 +44,24 @@ export const WebAlert = () => {
         </>
       ),
       duration: 0,
-      onClose: handleClose
-    });
-  }, [visible]);
+      onClose: handleClose,
+    })
+  }, [visible])
 
-  return null;
-};
+  return null
+}
 
 export const RPILink = () => {
   const handleOpenLink = () => {
     if (window.electron) {
-      window.electron.openExternal(LinkUrl);
+      window.electron.openExternal(LinkUrl)
     } else {
-      window.open(LinkUrl);
+      window.open(LinkUrl)
     }
-  };
+  }
   return (
     <Link hoverable={false} onClick={handleOpenLink}>
       RPI
     </Link>
-  );
-};
+  )
+}

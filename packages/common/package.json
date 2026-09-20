@@ -2,19 +2,30 @@
   "name": "common",
   "private": true,
   "version": "1.0.0-beta.8",
+  "source": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./constants/settings": "./constants/settings.ts",
+    "./types": "./types/index.ts",
+    "./types/configStore": "./types/configStore.ts",
+    "./typedIpc": "./typedIpc/index.ts",
+    "./constants/*": "./constants/*.ts",
+    "./types/*": "./types/*.ts",
+    "./typedIpc/*": "./typedIpc/*.ts"
+  },
   "engines": {
-    "node": ">=12"
+    "node": ">=22.12.0"
   },
   "scripts": {
     "tsc": "tsc --noEmit",
-    "lint": "eslint --ext .ts,.tsx",
-    "lint:fix": "eslint --fix --ext .ts,.tsx",
-    "prettier": "prettier --write"
+    "lint": "oxlint . --deny-warnings",
+    "format:check": "oxfmt . --check"
   },
   "author": "njzy <njzydark@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "electron": "16.0.8",
-    "electron-store": "^8.0.1"
+    "electron": "catalog:",
+    "electron-store": "catalog:",
+    "typescript": "catalog:"
   }
 }

@@ -1,61 +1,39 @@
-import { Dropdown, Empty, Menu, Typography } from '@arco-design/web-react';
-import { PkgListClickAction } from 'common/types/configStore';
-
-import { formatPkgName } from '@/utils';
-
-import styles from './CardList.module.less';
-import { CustomLazyLoadImage } from './CustomLazyLoadImage';
-import { TableListProps } from './TableList';
-
-export const CardList = ({ data, handleInstallByActionType, displayPkgRawTitle }: TableListProps) => {
-  if (data.length === 0) {
-    return <Empty />;
-  }
-
+import { PkgListClickAction } from 'common/types/configStore'
+import { Button, Empty, Spin } from '@/design-system'
+import { formatFileSize, formatPkgName } from '@/utils'
+import { useContainer } from '@/store/container'
+import type { TableListProps } from './TableList'
+import { GameCover } from './GameCover'
+import { GameActions } from './GameActions'
+export function CardList({ data, loading, displayPkgRawTitle, handleInstallByActionType }: TableListProps) {
+  const { settings } = useContainer()
+  if (loading) return <Spin />
+  if (!data.length) return <Empty description="没有找到符合条件的游戏" />
   return (
-    <div className={styles['card-list-wrapper']}>
-      {data.map(item => (
-        <Dropdown
-          key={item.filename}
-          trigger="contextMenu"
-          position="bl"
-          disabled={item.type === 'directory'}
-          droplist={
-            <Menu>
-              <Menu.Item
-                key="1"
-                onClick={() => {
-                  handleInstallByActionType(item, PkgListClickAction.install);
-                }}
-              >
-                Install
-              </Menu.Item>
-              <Menu.Item
-                key="2"
-                onClick={() => {
-                  handleInstallByActionType(item, PkgListClickAction.detail);
-                }}
-              >
-                Detail
-              </Menu.Item>
-            </Menu>
-          }
-        >
-          <div
-            className={styles['item-wrapper']}
-            onClick={() => {
-              handleInstallByActionType(item, PkgListClickAction.auto);
-            }}
+    <div className="game-grid">
+      {data.map((file) => (
+        <GameActions key={file.filename} file={file} onAction={handleInstallByActionType}>
+          <Button
+            variant="text"
+            className="game-card"
+            onClick={() => handleInstallByActionType(file, PkgListClickAction.auto)}
           >
-            <CustomLazyLoadImage key={item.filename} data={item} />
-            <Typography.Text ellipsis={{ rows: 2 }} style={{ marginTop: 10, marginBottom: 0 }}>
-              {formatPkgName(item, displayPkgRawTitle)}
-            </Typography.Text>
-          </div>
-        </Dropdown>
+            <div className="game-cover">
+              <GameCover file={file} />
+              <span className="game-cover-action">
+                {file.type === 'directory'
+                  ? '打开文件夹'
+                  : settings.pkgListClickAction === PkgListClickAction.install
+                    ? '安装游戏'
+                    : '查看详情'}
+              </span>
+            </div>
+            <strong title={formatPkgName(file, displayPkgRawTitle)}>{formatPkgName(file, displayPkgRawTitle)}</strong>
+            <small>{file.type === 'directory' ? '文件夹' : `PS4 · ${formatFileSize(file.size)}`}</small>
+          </Button>
+        </GameActions>
       ))}
     </div>
-  );
-};
-
-export default CardList;
+  )
+}
+export default CardList

@@ -1,4 +1,4 @@
-import { PkgListClickAction, PkgListUIType, Settings } from '../types/configStore';
+import { PkgListClickAction, PkgListUIType, Settings } from '../types/configStore'
 
 export const defaultSettings: Settings = {
   pkgListUIType: PkgListUIType.card,
@@ -7,5 +7,5 @@ export const defaultSettings: Settings = {
   pkgListClickAction: PkgListClickAction.detail,
   aggregationMode: true,
   forceWebDavDownloadLinkToHttp: true,
-  useBetaVersion: true
-};
+  useBetaVersion: true,
+}

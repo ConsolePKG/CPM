@@ -1,23 +1,17 @@
 {
-  // See https://go.microsoft.com/fwlink/?LinkId=733558 
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
   // for the documentation about the tasks.json format
   "version": "2.0.0",
   "tasks": [
     {
       "label": "Desktp",
       "dependsOrder": "sequence",
-      "dependsOn": [
-        "All Dev",
-        "Desktop Start"
-      ],
+      "dependsOn": ["All Dev", "Desktop Start"],
       "problemMatcher": []
     },
     {
       "label": "All Dev",
-      "dependsOn": [
-        "Desktop Dev",
-        "Web Dev"
-      ],
+      "dependsOn": ["Desktop Dev", "Web Dev"],
       "problemMatcher": []
     },
     {
@@ -33,7 +27,7 @@
             "beginsPattern": ".",
             "endsPattern": "No errors found"
           }
-        },
+        }
       ]
     },
     {
@@ -49,7 +43,7 @@
             "beginsPattern": ".",
             "endsPattern": "Found 0 errors"
           }
-        },
+        }
       ]
     },
     {
@@ -65,7 +59,7 @@
             "beginsPattern": "Debugger listening on",
             "endsPattern": "For help"
           }
-        },
+        }
       ]
     }
   ]

@@ -1,0 +1,39 @@
+.config-card {
+  display: flex;
+  align-items: flex-start;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  overflow: hidden;
+}
+.config-card.is-active {
+  border-color: var(--accent);
+}
+.config-card-select.cpm-button {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 22px;
+  border-radius: 0;
+  text-align: left;
+}
+.config-card-select strong {
+  font-size: 18px;
+}
+.config-card-select small,
+.config-card-select span {
+  color: var(--muted);
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+.config-card-select .config-status {
+  margin-top: 6px;
+  color: var(--accent);
+}
+.config-card-actions {
+  display: flex;
+  padding: 12px 8px;
+}
