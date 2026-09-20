@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1220"/><stop offset="1" stop-color="#101a2d"/></linearGradient>
+    <linearGradient id="hero" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#263d69"/><stop offset=".55" stop-color="#172946"/><stop offset="1" stop-color="#0b1424"/></linearGradient>
+    <linearGradient id="cover1" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f15a4a"/><stop offset="1" stop-color="#2d183a"/></linearGradient>
+    <linearGradient id="cover2" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2678b8"/><stop offset="1" stop-color="#081c3c"/></linearGradient>
+    <linearGradient id="cover3" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffb300"/><stop offset="1" stop-color="#773a00"/></linearGradient>
+    <linearGradient id="cover4" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#884be0"/><stop offset="1" stop-color="#1c123e"/></linearGradient>
+    <linearGradient id="cover5" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#42a66a"/><stop offset="1" stop-color="#112d2b"/></linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000" flood-opacity=".35"/></filter>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="15" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <style>
+      .label{font-family:Inter,Arial,sans-serif;fill:#91a4c1;font-size:14px;letter-spacing:.05em}.small{font-family:Inter,Arial,sans-serif;fill:#7f92af;font-size:13px}.body{font-family:Inter,Arial,sans-serif;fill:#dce8fb;font-size:16px}.title{font-family:Inter,Arial,sans-serif;fill:#f2f6ff;font-size:31px;font-weight:650}.game{font-family:Inter,Arial,sans-serif;fill:#fff;font-size:17px;font-weight:600}.muted{font-family:Inter,Arial,sans-serif;fill:#9eafc9;font-size:14px}.nav{font-family:Inter,Arial,sans-serif;fill:#c2d0e8;font-size:15px}.key{font-family:Inter,Arial,sans-serif;fill:#07111f;font-size:12px;font-weight:700}.covertext{font-family:Inter,Arial,sans-serif;fill:#fff;font-size:22px;font-weight:800;letter-spacing:.1em}.covermini{font-family:Inter,Arial,sans-serif;fill:#fff;font-size:11px;font-weight:650;letter-spacing:.16em}
+    </style>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#bg)"/>
+  <!-- sidebar / PC shell -->
+  <rect x="0" y="0" width="272" height="1000" fill="#0d1728"/>
+  <rect x="271" y="0" width="1" height="1000" fill="#20314d"/>
+  <text x="48" y="60" class="label" fill="#86a9ff">CPM / LIBRARY</text>
+  <text x="48" y="96" class="title" font-size="25">Your collection</text>
+  <text x="48" y="145" class="small">PLAYSTATION PACKAGE MANAGER</text>
+  <rect x="32" y="192" rx="10" width="208" height="48" fill="#28477d"/>
+  <rect x="32" y="192" rx="10" width="4" height="48" fill="#65a5ff"/>
+  <circle cx="58" cy="216" r="8" fill="#9cc7ff"/><path d="M54 216h8M58 212v8" stroke="#16345f" stroke-width="2"/>
+  <text x="82" y="222" class="nav" fill="#fff">Library</text>
+  <text x="50" y="287" class="label">WORKSPACE</text>
+  <text x="50" y="332" class="nav">Install queue</text><text x="208" y="332" class="small">3</text>
+  <text x="50" y="378" class="nav">Hosts</text>
+  <text x="50" y="424" class="nav">File servers</text>
+  <text x="50" y="470" class="nav">Settings</text>
+  <line x1="48" y1="866" x2="224" y2="866" stroke="#243753"/>
+  <circle cx="62" cy="906" r="18" fill="#233652"/><text x="56" y="912" class="body" font-size="13">Y</text>
+  <text x="94" y="911" class="small">Controller mode</text>
+  <text x="48" y="954" class="small">v0.8.0  •  Connected</text>
+  <!-- main -->
+  <text x="320" y="64" class="label">LIBRARY / ALL GAMES</text>
+  <text x="320" y="107" class="title">Games</text>
+  <text x="320" y="137" class="muted">Select a title to view details and install</text>
+  <!-- toolbar -->
+  <rect x="1084" y="73" width="212" height="42" rx="9" fill="#131f34" stroke="#29405f"/>
+  <circle cx="1110" cy="94" r="7" fill="none" stroke="#8aa3c7" stroke-width="2"/><path d="M1115 100l6 6" stroke="#8aa3c7" stroke-width="2"/>
+  <text x="1130" y="100" class="small">Search library</text>
+  <rect x="1311" y="73" width="122" height="42" rx="9" fill="#1a2d4d"/><text x="1337" y="99" class="nav">Sort  ▾</text>
+  <rect x="1448" y="73" width="102" height="42" rx="9" fill="#4b78c7"/><text x="1470" y="99" class="nav" fill="#fff">Refresh</text>
+  <line x1="320" y1="174" x2="1550" y2="174" stroke="#233650"/>
+  <text x="320" y="210" class="label">RECENTLY ADDED</text><text x="1455" y="210" class="small">12 titles</text>
+  <!-- cards -->
+  <g filter="url(#shadow)">
+    <rect x="320" y="240" width="198" height="264" rx="12" fill="url(#cover1)"/>
+    <path d="M320 394 Q390 330 463 377 T518 347V504H320Z" fill="#321d47" opacity=".7"/><circle cx="417" cy="335" r="46" fill="#ffbd7a" opacity=".42"/>
+    <text x="342" y="293" class="covermini">NIGHTFALL</text><text x="342" y="454" class="covertext">REQUIEM</text><text x="342" y="478" class="covermini">PS4 / 44.6 GB</text>
+    <text x="320" y="535" class="game">Nightfall Requiem</text><text x="320" y="558" class="muted">CUSA-18422  ·  v1.08</text>
+    <rect x="546" y="240" width="198" height="264" rx="12" fill="url(#cover2)"/>
+    <path d="M546 420 Q610 344 679 417 T744 365V504H546Z" fill="#081631" opacity=".7"/><circle cx="647" cy="340" r="50" fill="#83dbff" opacity=".42"/><text x="568" y="293" class="covermini">DEEP SPACE</text><text x="568" y="454" class="covertext">ECHO</text><text x="568" y="478" class="covermini">PS4 / 28.1 GB</text>
+    <text x="546" y="535" class="game">Deep Space Echo</text><text x="546" y="558" class="muted">CUSA-09251  ·  v1.03</text>
+    <rect x="772" y="240" width="198" height="264" rx="12" fill="url(#cover3)"/>
+    <path d="M772 407 L872 310 L970 407V504H772Z" fill="#502000" opacity=".7"/><circle cx="871" cy="356" r="45" fill="#ffeaa4" opacity=".55"/><text x="794" y="293" class="covermini">THE LAST</text><text x="794" y="454" class="covertext">ORBIT</text><text x="794" y="478" class="covermini">PS4 / 56.2 GB</text>
+    <text x="772" y="535" class="game">The Last Orbit</text><text x="772" y="558" class="muted">CUSA-77102  ·  v1.12</text>
+    <rect x="998" y="240" width="198" height="264" rx="12" fill="url(#cover4)"/>
+    <path d="M998 420 Q1060 335 1112 400 T1196 355V504H998Z" fill="#171039" opacity=".75"/><circle cx="1095" cy="337" r="48" fill="#e9b5ff" opacity=".42"/><text x="1020" y="293" class="covermini">ORBITAL</text><text x="1020" y="454" class="covertext">DRIFT</text><text x="1020" y="478" class="covermini">PS4 / 17.8 GB</text>
+    <text x="998" y="535" class="game">Orbital Drift</text><text x="998" y="558" class="muted">CUSA-31044  ·  v1.00</text>
+    <rect x="1224" y="240" width="198" height="264" rx="12" fill="url(#cover5)"/>
+    <path d="M1224 403 L1318 333 L1422 416V504H1224Z" fill="#123b34" opacity=".8"/><circle cx="1323" cy="339" r="45" fill="#bbffd0" opacity=".35"/><text x="1246" y="293" class="covermini">WILD</text><text x="1246" y="454" class="covertext">TERRAIN</text><text x="1246" y="478" class="covermini">PS4 / 31.4 GB</text>
+    <text x="1224" y="535" class="game">Wild Terrain</text><text x="1224" y="558" class="muted">CUSA-65401  ·  v1.07</text>
+  </g>
+  <!-- focus on first tile -->
+  <rect x="310" y="230" width="218" height="284" rx="17" fill="none" stroke="#a8d2ff" stroke-width="4" filter="url(#glow)"/>
+  <rect x="320" y="594" width="1102" height="1" fill="#263a59"/>
+  <text x="320" y="640" class="label">SELECTED TITLE</text>
+  <text x="320" y="687" class="title" font-size="28">Nightfall Requiem</text>
+  <text x="320" y="719" class="body">Action RPG  ·  CUSA-18422  ·  44.6 GB  ·  Version 1.08</text>
+  <text x="320" y="759" class="muted">Ready to install from the selected file server.</text>
+  <rect x="320" y="801" width="156" height="46" rx="10" fill="#e8f1ff"/><text x="358" y="830" class="key">INSTALL</text>
+  <rect x="488" y="801" width="124" height="46" rx="10" fill="#1b2c48" stroke="#385274"/><text x="519" y="830" class="nav">DETAILS</text>
+  <!-- bottom controller hint -->
+  <rect x="320" y="900" width="1230" height="58" rx="12" fill="#111d31" stroke="#223754"/>
+  <circle cx="357" cy="929" r="13" fill="#e8f1ff"/><text x="352" y="934" class="key">×</text><text x="382" y="935" class="small">Select</text>
+  <circle cx="475" cy="929" r="13" fill="#87a6cc"/><text x="470" y="934" class="key">○</text><text x="500" y="935" class="small">Back</text>
+  <circle cx="582" cy="929" r="13" fill="#87a6cc"/><text x="577" y="934" class="key">△</text><text x="607" y="935" class="small">Details</text>
+  <text x="1362" y="935" class="small">D-pad / left stick to move</text>
+</svg>
