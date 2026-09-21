@@ -1,5 +1,6 @@
 import { Link, Notification } from '@/components/ui'
 import { useEffect, useRef, useState } from 'react'
+import { usePS4HostForm } from './useHostForms'
 import { useNavigate } from 'react-router-dom'
 
 import { sampleTransfer, taskKey, transferPercent } from './taskProgress'
@@ -59,6 +60,7 @@ export const usePS4Installer = (fileServerHostId?: string) => {
   }, [curSelectPs4HostId, ps4Hosts])
 
   const navigate = useNavigate()
+  const { open: openHostForm } = usePS4HostForm()
 
   const handleInstall = async (file: FileStat) => {
     try {
@@ -73,7 +75,7 @@ export const usePS4Installer = (fileServerHostId?: string) => {
               <Link
                 onClick={() => {
                   Notification.remove('ps4-installer-no-host')
-                  navigate('/hosts?openPs4Host=true')
+                  openHostForm()
                 }}
               >
                 添加 PS4 主机

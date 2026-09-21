@@ -3,7 +3,9 @@ import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Button, Popover } from '@/design-system'
 import { useContainer } from '@/store/container'
+import { usePS4HostForm } from '@/hooks/useHostForms'
 export function HostSwitcher() {
+  const { open: openHostForm } = usePS4HostForm()
   const {
     ps4Installer: { ps4Hosts, curSelectPs4HostId, setCurSelectPs4HostId },
   } = useContainer()
@@ -11,9 +13,9 @@ export function HostSwitcher() {
   const navigate = useNavigate()
   const location = useLocation()
   const selected = ps4Hosts.find((host) => host.id === curSelectPs4HostId)
-  const settings = (add = false) => {
+  const settings = () => {
     setOpen(false)
-    navigate(`/settings/hosts${add ? '?add=true' : ''}`, { state: { backgroundLocation: location } })
+    navigate('/settings/hosts', { state: { backgroundLocation: location } })
   }
   return (
     <Popover
@@ -49,7 +51,14 @@ export function HostSwitcher() {
           </Button>
         ))}
         {!ps4Hosts.length && <p className="muted">还没有添加 PS4 主机</p>}
-        <Button variant="text" icon={<Plus />} onClick={() => settings(true)}>
+        <Button
+          variant="text"
+          icon={<Plus />}
+          onClick={() => {
+            setOpen(false)
+            openHostForm()
+          }}
+        >
           添加主机
         </Button>
         <Button variant="text" onClick={() => settings()}>

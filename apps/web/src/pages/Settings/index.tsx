@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
 import { Dialog } from '@base-ui/react/dialog'
 import { X } from 'react-feather'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -9,6 +11,7 @@ import { FileServerHost } from '../Hosts/components/FileServerHost'
 import { PS4Host } from '../Hosts/components/PS4Host'
 import { Info } from './components/Info'
 import './settings.less'
+import { HostFormDialogs } from '@/components/HostFormDialogs'
 const sections = [
   {
     title: '应用设置',
@@ -36,6 +39,17 @@ const sections = [
 export const Settings = () => {
   const { settings, chnageSettings } = useContainer()
   const { mode, setMode } = useTheme()
+  const [open, setOpen] = useState(true)
+  const reduceMotion = useReducedMotion()
+  const transition = {
+    duration: reduceMotion ? 0 : open ? 0.2 : 0.18,
+    ease: [0.25, 0.1, 0.25, 1] as const,
+  }
+  const contentMotion = {
+    hidden: { opacity: 0, y: reduceMotion ? 0 : 6 },
+    visible: { opacity: 1, y: 0 },
+    exiting: { opacity: 0, y: reduceMotion ? 0 : 6 },
+  }
   const location = useLocation()
   const navigate = useNavigate()
   const state = location.state as SettingsLocationState | null
@@ -46,22 +60,49 @@ export const Settings = () => {
       : 'servers'
     : location.pathname.split('/')[2] || 'general'
   const title = sections.flatMap((group) => group.items).find((item) => item.id === section)?.title || '常规'
-  const close = () => {
+  const close = () => setOpen(false)
+  const finishClose = () => {
     if (state?.backgroundLocation) navigate(-1)
     else navigate('/', { replace: true })
   }
   return (
     <Dialog.Root
       open
-      onOpenChange={(open) => {
-        if (!open) close()
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) close()
       }}
     >
       <Dialog.Portal>
-        <Dialog.Backdrop className="settings-backdrop" />
-        <Dialog.Popup className="settings-screen" finalFocus={() => document.getElementById('settings-trigger')}>
+        <Dialog.Backdrop className="settings-backdrop">
+          <motion.div
+            className="settings-scrim"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: open ? 1 : 0 }}
+            transition={transition}
+          />
+        </Dialog.Backdrop>
+        <Dialog.Popup
+          className="settings-screen"
+          data-closing={!open || undefined}
+          finalFocus={() => document.getElementById('settings-trigger')}
+          render={
+            <motion.div
+              initial="hidden"
+              animate={open ? 'visible' : 'exiting'}
+              variants={{
+                hidden: { opacity: 0 },
+                visible: { opacity: 1 },
+                exiting: { opacity: 0 },
+              }}
+              transition={transition}
+              onAnimationComplete={(phase) => {
+                if (phase === 'exiting' && !open) finishClose()
+              }}
+            />
+          }
+        >
           <aside className="settings-sidebar">
-            <div className="settings-nav-inner">
+            <motion.div className="settings-nav-inner" variants={contentMotion} transition={transition}>
               <div className="settings-brand">
                 CPM<small>设置</small>
               </div>
@@ -83,9 +124,16 @@ export const Settings = () => {
                 </div>
               ))}
               <p className="settings-version">CPM · {_app_version}</p>
-            </div>
+            </motion.div>
           </aside>
-          <div className="settings-body">
+          <motion.div
+            key={section}
+            className="settings-body"
+            variants={contentMotion}
+            initial="hidden"
+            animate={open ? 'visible' : 'exiting'}
+            transition={transition}
+          >
             <Dialog.Title className="settings-title">{title}</Dialog.Title>
             <Dialog.Description className="settings-description">
               {section === 'library'
@@ -184,13 +232,14 @@ export const Settings = () => {
                 <p className="muted">这些功能仅在桌面端提供。</p>
               ))}
             {section === 'about' && <Info />}
-          </div>
+          </motion.div>
           <div className="settings-close">
             <IconButton label="关闭设置" variant="text" onClick={close}>
               <X />
             </IconButton>
             <small>ESC</small>
           </div>
+          <HostFormDialogs />
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>

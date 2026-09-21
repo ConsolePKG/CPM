@@ -2,25 +2,33 @@
   position: fixed;
   inset: 0;
   z-index: 99;
-  background: var(--bg);
+}
+.settings-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
 }
 .settings-screen {
+  --settings-sidebar-width: clamp(240px, 20vw, 300px);
   position: fixed;
   inset: 0;
   z-index: 100;
   background: var(--bg);
   color: var(--text);
   display: grid;
-  grid-template-columns: minmax(240px, calc((100vw - 640px) / 2 - 160px)) minmax(0, 780px) 1fr;
+  grid-template-columns: var(--settings-sidebar-width) minmax(0, 1fr) 80px;
   overflow: auto;
+  opacity: 1;
 }
 .settings-sidebar {
-  background: var(--surface);
-  padding: 70px 26px 40px;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--surface-2) 70%, var(--bg)), var(--bg) 85%);
+  border-right: 1px solid color-mix(in srgb, var(--line), transparent 40%);
+  padding: 56px 24px 40px;
 }
 .settings-nav-inner {
-  width: 210px;
-  margin-left: auto;
+  width: 100%;
+  max-width: 240px;
+  margin-inline: auto;
   position: sticky;
   top: 40px;
 }
@@ -65,8 +73,12 @@
   color: var(--muted);
 }
 .settings-body {
-  padding: 76px 54px 80px;
+  padding: 56px clamp(28px, 4vw, 72px) 80px;
   min-width: 0;
+}
+.settings-body > * {
+  max-width: 1080px;
+  margin-inline: auto;
 }
 .settings-title {
   font-size: 28px;
@@ -78,9 +90,11 @@
   color: var(--muted);
 }
 .settings-close {
-  position: sticky;
-  top: 76px;
-  padding-left: 24px;
+  position: fixed;
+  top: calc((var(--header-height) - 42px) / 2);
+  right: var(--page-gutter);
+  z-index: 2;
+  padding-left: 0;
   align-self: start;
   display: flex;
   flex-direction: column;
@@ -98,7 +112,9 @@
 }
 @media (max-width: 1050px) {
   .settings-screen {
-    grid-template-columns: 230px minmax(0, 1fr) 72px;
+    --settings-sidebar-width: 230px;
+
+    grid-template-columns: var(--settings-sidebar-width) minmax(0, 1fr) 72px;
   }
   .settings-sidebar {
     padding: 40px 12px;
@@ -106,26 +122,27 @@
   .settings-body {
     padding: 48px 28px;
   }
-  .settings-close {
-    top: 48px;
-    padding-left: 4px;
-  }
   .settings-nav-inner {
     width: 100%;
   }
 }
-@media (max-width: 620px) {
+@media (max-width: 850px) {
   .settings-screen {
     display: block;
+    background: var(--bg);
   }
   .settings-sidebar {
     padding: 20px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
   }
   .settings-brand {
-    padding: 0 0 16px;
+    padding: 0 52px 16px 0;
   }
   .settings-nav-inner {
     position: static;
+    max-width: none;
+    margin: 0;
   }
   .settings-nav-group {
     display: inline;
@@ -143,11 +160,6 @@
   }
   .settings-body {
     padding: 28px 20px;
-  }
-  .settings-close {
-    position: fixed;
-    top: 16px;
-    right: 20px;
   }
   .settings-close small {
     display: none;

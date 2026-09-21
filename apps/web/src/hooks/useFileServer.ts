@@ -47,6 +47,38 @@ export const useFileServer = ({
 
   const { pkgInfoData, pkgInfoDataLoading, getWebDavPkgFileInfo } = useWebDavPkgInfo({ setFileServerFiles })
 
+  const [pending, setPending] = useState(false)
+  const activationPending = useRef(false)
+  const activate = async (host: FileServerHost) => {
+    if (activationPending.current) return
+    activationPending.current = true
+    setPending(true)
+    setIsFileServerReady(false)
+    try {
+      let selected = host
+      if (host.type === FileServerType.StaticFileServer && window.electron) {
+        const response = await window.electron.createStaticFileServer({
+          directoryPath: host.directoryPath,
+          port: host.port,
+          preferredInterface: host.preferredInterface,
+        })
+        if (!response?.url) throw new Error(response?.errorMessage || '启动文件服务器失败')
+        selected = { ...host, url: response.url }
+        setFileServerHosts((old) => old.map((item) => (item.id === host.id ? selected : item)))
+        Notification.success({ title: '文件服务器已启动', content: response.url })
+      }
+      setPaths([])
+      setFileServerFiles([])
+      setCurFileServerHostId(selected.id)
+    } catch (err) {
+      Notification.error({ title: '切换文件服务器失败', content: (err as Error).message })
+    } finally {
+      setIsFileServerReady(true)
+      activationPending.current = false
+      setPending(false)
+    }
+  }
+
   const getFilesApi = async (curHost: FileServerHost, webDavClient?: WebDAVClient, path = '/') => {
     let res: FileStat[] = []
     if (curHost.type === FileServerType.WebDAV && webDavClient) {
@@ -194,6 +226,8 @@ export const useFileServer = ({
 
   return {
     webDavClient,
+    activate,
+    pending,
     fileServerHosts,
     setFileServerHosts,
     curFileServerHostId,
