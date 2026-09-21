@@ -7,6 +7,7 @@ import { staticServerManager } from './staticServerManager'
 import { storeManager } from './store'
 import { updater } from './updater'
 import { getAvailableInterfaces, getIp } from './utils'
+import { discoverPS4Hosts } from './ps4Discovery'
 
 export class Ipc {
   static win: BrowserWindow
@@ -36,6 +37,7 @@ export class Ipc {
 
   protected init() {
     this.initWebDavServer()
+    ipcMainHandle('discoverPS4Hosts', () => discoverPS4Hosts())
 
     ipcMainHandle('getAppInfo', async () => {
       const version = app.getVersion()

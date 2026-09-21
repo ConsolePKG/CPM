@@ -105,3 +105,31 @@ pnpm run desktop:dist
 ---
 
 [![Powered by DartNode](https://dartnode.com/branding/DN-Open-Source-sm.png)](https://dartnode.com 'Powered by DartNode - Free VPS for Open Source')
+
+### Bundled CPI and host management
+
+Adding/editing a PS4 host queries `/api/status` for the system version, CPI version,
+and service state. Older services fall back to the read-only existence probe.
+The web public directory includes `cpi/rpi-payload-ps4.elf` and a version/size/SHA-256
+manifest. After rebuilding CPI in the sibling repository, run `pnpm cpi:sync` to
+refresh both before releasing CPM. The web build copies these public assets into
+the output; desktop packaging includes the same renderer assets.
+
+“重装 CPI” uses GoldHEN's HTTP protocol in both web and Electron: POST `/status`
+on the configurable Payload Server port (default 9090), followed by POST `/` with
+the raw ELF ArrayBuffer. Reference: [hippie68's browser sender](https://github.com/hippie68/hippie68.github.io/blob/master/900/index.html).
+It verifies the bundled hash and loader readiness before requesting CPI shutdown,
+waits for API/manifest listeners to disappear, sends once, then checks CPI on port
+12801. Failed or uncertain sends are never automatically repeated. This updates both the running payload and `/data/payloads/rpi-payload-ps4.elf`.
+When current CPI advertises `payload_update`, CPM uploads to `/api/payload` and
+verifies the readback hash before shutdown. For older CPI that supports shutdown
+but lacks this capability, CPM first loads the new bundled CPI, then uploads and
+verifies the boot file using the new instance. Failure to save/read back the boot
+file is reported as incomplete, not success. FTP is not required.
+
+The browser needs access to the console's local HTTP endpoints. HTTPS pages can
+be blocked by mixed-content restrictions; use HTTP hosting or Electron. The UI
+reports network failures and preserves the distinction between payload transfer
+and a verified CPI response. Wait for active installations to finish before
+reloading CPI. On an offline result, confirm the old instance has stopped before
+sending another payload.

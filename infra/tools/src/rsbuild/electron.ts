@@ -18,6 +18,8 @@ export const defineElectronConfig = (options: ElectronRsbuildOptions = {}) => {
         source: { entry },
         output: {
           target: 'node',
+          // Electron's main and preload entries are loaded as CommonJS.
+          module: false,
           distPath: { root: distPath },
           filename: { js: '[name].js' },
           cleanDistPath: true,

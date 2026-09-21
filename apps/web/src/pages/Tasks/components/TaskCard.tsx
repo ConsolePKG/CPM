@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Pause, Play, Trash2, X } from 'react-feather'
+import { Pause, Play, Trash2 } from 'react-feather'
 import { Button, IconButton, Progress, ConfirmDialog } from '@/design-system'
 import { type InstallTask, TaskActionType, TaskStatus } from '@/types'
 import { formatFileSize } from '@/utils'
@@ -17,7 +17,15 @@ export function TaskCard({
   const complete = task.status === TaskStatus.FINISHED
   const percent = task.progressInfo?._percent || 0
   const remaining = task.progressInfo?.rest_sec
-  const status = task.errorMessage ? '出错' : active ? '下载中' : complete ? '已完成' : '已暂停'
+  const status = task.cleanupPending
+    ? '待清理'
+    : task.errorMessage
+      ? '出错'
+      : active
+        ? '下载中'
+        : complete
+          ? '已完成'
+          : '已暂停'
   const act = async (action: TaskActionType) => {
     setBusy(true)
     try {
@@ -67,7 +75,7 @@ export function TaskCard({
         )}
       </div>
       <div className="task-actions">
-        {!complete && (
+        {!complete && !task.cleanupPending && (
           <IconButton
             label={active ? '暂停任务' : '继续任务'}
             loading={busy}
@@ -76,34 +84,29 @@ export function TaskCard({
             {active ? <Pause /> : <Play />}
           </IconButton>
         )}
-        {!complete && (
-          <IconButton
-            label="取消安装任务"
-            variant="text"
-            disabled={busy}
-            onClick={() => setConfirmation(TaskActionType.CANCEL)}
-          >
-            <X />
-          </IconButton>
-        )}
         <IconButton
-          label="删除任务记录"
+          label={task.cleanupPending ? '重新查询取消结果' : complete ? '删除任务记录' : '取消下载'}
           variant="text"
           disabled={busy}
-          onClick={() => setConfirmation(TaskActionType.DELETE)}
+          onClick={() => setConfirmation(complete ? TaskActionType.DELETE : TaskActionType.CANCEL)}
         >
           <Trash2 />
         </IconButton>
+        {task.cleanupPending && (
+          <Button variant="text" disabled={busy} onClick={() => setConfirmation(TaskActionType.DELETE)}>
+            移除记录
+          </Button>
+        )}
       </div>
       <ConfirmDialog
         visible={Boolean(confirmation)}
-        title={confirmation === TaskActionType.DELETE ? '删除任务记录？' : '取消安装任务？'}
+        title={confirmation === TaskActionType.DELETE ? '删除任务记录？' : '取消下载？'}
         description={
           confirmation === TaskActionType.DELETE
-            ? '只从当前任务列表移除，主机上的安装不会被取消。'
-            : '向原安装主机发送取消请求，停止此任务。'
+            ? '仅移除 CPM 记录，不会清理 PS4 上的内容。若有残留，请先在主机上处理。'
+            : '取消下载。CPI 确认是全新未完成本体时会卸载并删除；补丁、DLC、重装或状态未知时保留待清理记录，不卸载已有内容。'
         }
-        confirmText={confirmation === TaskActionType.DELETE ? '删除记录' : '取消任务'}
+        confirmText={confirmation === TaskActionType.DELETE ? '删除记录' : '确认取消'}
         onCancel={() => setConfirmation(undefined)}
         onConfirm={() => confirmation && act(confirmation)}
       />

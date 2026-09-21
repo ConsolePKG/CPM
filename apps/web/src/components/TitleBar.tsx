@@ -1,8 +1,7 @@
 import cs from 'classnames'
 import { Minus, Square, X } from 'react-feather'
 
-// @ts-ignore
-import icon from '@/assets/icon.png'
+import icon from '@/assets/icon.svg'
 
 import styles from './TitleBar.module.less'
 

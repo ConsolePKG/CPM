@@ -18,7 +18,7 @@
   "main": "dist/main/index.js",
   "scripts": {
     "start": "electron . --remote-debugging-port=9223 --inspect=9224",
-    "start:dev": "wait-on http://localhost:5173 dist/main/index.js && cross-env NODE_ENV=development RENDERER_DEV_PORT=5173 electronmon . --watch dist/main",
+    "start:dev": "wait-on http://localhost:5173 dist/main/index.js && cross-env NODE_ENV=development RENDERER_DEV_PORT=5173 electronmon .",
     "dev:main": "cross-env NODE_ENV=development rsbuild build --watch",
     "build": "cross-env NODE_ENV=production rsbuild build && pnpm run copyRenderer",
     "copyRenderer": "node scripts/copyRenderer.mjs",
@@ -26,7 +26,9 @@
     "lint": "oxlint src --deny-warnings",
     "format:check": "oxfmt src --check",
     "pack": "pnpm run build && electron-builder --dir",
-    "dist": "pnpm run build && electron-builder"
+    "dist": "pnpm run build && electron-builder",
+    "icons": "bash scripts/generate-icons.sh",
+    "test": "rstest run"
   },
   "build": {
     "extraMetadata": {
@@ -39,7 +41,8 @@
     },
     "files": [
       "dist",
-      "node_modules"
+      "node_modules",
+      "assets/icon.png"
     ],
     "publish": [
       "github"
@@ -76,10 +79,13 @@
             "arm64"
           ]
         }
-      ]
+      ],
+      "extendInfo": {
+        "NSLocalNetworkUsageDescription": "CPM 需要访问本地网络来发现 PS4 主机并连接安装服务。"
+      }
     },
     "linux": {
-      "icon": "assets/icon.icns",
+      "icon": "assets/icon.png",
       "category": "Utility",
       "artifactName": "${productName}-${os}-${version}-${arch}.${ext}",
       "target": [
@@ -122,5 +128,10 @@
     "infra-tools": "workspace:*",
     "typescript": "catalog:",
     "wait-on": "9.1.0"
+  },
+  "electronmon": {
+    "patterns": [
+      "!appDevConfig/**"
+    ]
   }
 }

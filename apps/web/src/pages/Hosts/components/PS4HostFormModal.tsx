@@ -1,10 +1,12 @@
-import axios from 'axios'
 import { nanoid } from 'nanoid'
 import { useEffect, useState } from 'react'
 import { Button, Drawer, FormField, Input, Notification, Alert } from '@/design-system'
 import { RPILink } from '@/components/WebAlert'
 import { useContainer } from '@/store/container'
 import { validateConsoleAddress } from '../validation'
+import { PS4Discovery } from './PS4Discovery'
+import { CPIManager } from './CPIManager'
+import { getCPIStatus } from '@/service/cpi'
 export type FormData = { id?: string; alias?: string; url: string }
 type Props = { data?: FormData; visible: boolean; onOk: (data: FormData) => void; onCancel: () => void }
 export function PS4HostFormModal({ data, visible, onOk, onCancel }: Props) {
@@ -15,6 +17,8 @@ export function PS4HostFormModal({ data, visible, onOk, onCancel }: Props) {
   const [url, setUrl] = useState('')
   const [error, setError] = useState('')
   const [testing, setTesting] = useState(false)
+  const [reinstalling, setReinstalling] = useState(false)
+  const normalizedHost = validateConsoleAddress(url).url
   useEffect(() => {
     if (visible) {
       setAlias(data?.alias || '')
@@ -23,6 +27,7 @@ export function PS4HostFormModal({ data, visible, onOk, onCancel }: Props) {
     }
   }, [visible, data])
   const submit = async (test = false) => {
+    if (reinstalling) return
     const result = validateConsoleAddress(url)
     if (result.error) {
       setError(result.error)
@@ -37,12 +42,13 @@ export function PS4HostFormModal({ data, visible, onOk, onCancel }: Props) {
     if (test) {
       setTesting(true)
       try {
-        await axios.get(normalized + '/api', { timeout: 3000 })
-        Notification.error('连接失败，请检查主机地址和 RPI 是否运行。')
-      } catch (err) {
-        if (axios.isAxiosError(err) && (err.response?.status === 400 || err.response?.data?.status === 'fail'))
-          Notification.success('已连接到 PS4 主机')
-        else Notification.error('连接失败，请检查 IP、端口及 Remote Package Installer。')
+        const status = await getCPIStatus(normalized)
+        if (status.state === 'online')
+          Notification.success(`CPI ${status.version} 在线 · 系统 ${status.systemVersion || '未知'}`)
+        else if (status.state === 'legacy') Notification.success('旧版安装服务在线，暂不支持版本查询')
+        else Notification.error(status.message || 'CPI 未连接')
+      } catch {
+        Notification.error('连接失败，请检查主机地址及 CPI 是否运行。')
       } finally {
         setTesting(false)
       }
@@ -55,14 +61,18 @@ export function PS4HostFormModal({ data, visible, onOk, onCancel }: Props) {
     <Drawer
       visible={visible}
       title={data?.id ? '编辑 PS4 主机' : '添加 PS4 主机'}
-      onCancel={onCancel}
+      onCancel={() => {
+        if (!reinstalling) onCancel()
+      }}
       footer={
         <>
-          <Button onClick={onCancel}>取消</Button>
-          <Button loading={testing} onClick={() => submit(true)}>
+          <Button disabled={reinstalling} onClick={onCancel}>
+            取消
+          </Button>
+          <Button disabled={reinstalling} loading={testing} onClick={() => submit(true)}>
             连接测试
           </Button>
-          <Button type="primary" onClick={() => submit()}>
+          <Button disabled={reinstalling} type="primary" onClick={() => submit()}>
             确认
           </Button>
         </>
@@ -75,12 +85,32 @@ export function PS4HostFormModal({ data, visible, onOk, onCancel }: Props) {
           submit()
         }}
       >
+        {visible && !data?.id && window.electron?.discoverPS4Hosts && (
+          <PS4Discovery
+            onSelect={(name, address) => {
+              setAlias(name)
+              setUrl(address)
+              setError('')
+            }}
+          />
+        )}
         <FormField label="别名">
-          <Input value={alias} onChange={setAlias} placeholder="PS4 · 客厅" />
+          <Input disabled={reinstalling} value={alias} onChange={setAlias} placeholder="PS4 · 客厅" />
         </FormField>
         <FormField label="主机地址" error={error} hint="请填写 IP 与端口，常用端口为 12800 或 12801。">
-          <Input value={url} onChange={setUrl} prefix="http://" placeholder="192.168.1.108:12801" autoFocus required />
+          <Input
+            disabled={reinstalling}
+            value={url}
+            onChange={setUrl}
+            prefix="http://"
+            placeholder="192.168.1.108:12801"
+            autoFocus
+            required
+          />
         </FormField>
+        {visible && normalizedHost && (
+          <CPIManager host={normalizedHost} onBusyChange={setReinstalling} onInstalled={setUrl} />
+        )}
         {!data?.id && (
           <Alert>
             主机上需要运行 Remote Package Installer。建议使用支持中文和空格路径的 <RPILink />。

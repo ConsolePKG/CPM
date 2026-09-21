@@ -18,9 +18,46 @@
   color: var(--muted);
   font-size: 13px;
 }
+.ps4-discovery {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+.ps4-discovery-heading,
+.ps4-discovery-host {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.ps4-discovery p {
+  color: var(--muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.ps4-discovery-host {
+  padding-top: 12px;
+  margin-top: 12px;
+  border-top: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.ps4-discovery-host > div {
+  min-width: 0;
+}
+.ps4-discovery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 @media (max-width: 680px) {
   .hosts-heading {
     align-items: flex-start;
     flex-direction: column;
   }
 }
+
+.cpi-manager { display: grid; gap: 12px; }
+.cpi-status-grid { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; margin: 0; }
+.cpi-status-grid dd { margin: 0; overflow-wrap: anywhere; }
+.cpi-manager-actions { display: flex; align-items: center; gap: 16px; }

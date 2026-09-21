@@ -2,8 +2,7 @@ import { Button, Link } from '@/components/ui'
 import { IconGithub } from '@/components/icons'
 import { useEffect, useState } from 'react'
 
-// @ts-ignore
-import Icon from '@/assets/icon.png'
+import Icon from '@/assets/icon.svg'
 
 import styles from './Info.module.less'
 

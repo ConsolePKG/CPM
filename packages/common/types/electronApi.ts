@@ -1,5 +1,25 @@
 import { ElectronConfigStore } from './configStore';
 
+export interface DiscoveredCPIService {
+  port: number;
+  version?: string;
+  systemVersion?: string;
+}
+
+export interface DiscoveredPS4 {
+  id: string;
+  name: string;
+  address: string;
+  status: 'awake' | 'standby';
+  ports: number[];
+  services?: DiscoveredCPIService[];
+}
+
+export interface PS4DiscoveryResult {
+  hosts: DiscoveredPS4[];
+  errorMessage?: string;
+}
+
 export interface IElectronIpcMainHandles {
   configStore: {
     get: ElectronConfigStore['get'];
@@ -24,6 +44,7 @@ export interface IElectronIpcMainHandles {
     | undefined
   >;
   getAvailableInterfaces: () => Promise<{ ipv4: string }[] | { errorMessage?: string } | null>;
+  discoverPS4Hosts: () => Promise<PS4DiscoveryResult>;
   openDevTools: () => void;
   openAppLog: () => void;
   checkUpdate: () => void;

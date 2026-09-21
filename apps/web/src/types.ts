@@ -82,6 +82,8 @@ export type InstallTask = {
   fileServerHostId: string
   status: TaskStatus
   progressInfo?: ProgressInfo
+  cancelToken?: string
+  cleanupPending?: boolean
   errorMessage?: string
   sampleTime?: number
   sampleTransferred?: number

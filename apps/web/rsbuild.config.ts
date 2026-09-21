@@ -19,5 +19,6 @@ export default defineConfigWithPreset({
   },
   html: {
     template: './index.html',
+    favicon: './src/assets/icon.svg',
   },
 })

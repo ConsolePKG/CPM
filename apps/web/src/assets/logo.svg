@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">ConsolePKG</title>
+  <desc id="desc">An open console gate receiving one package data block.</desc>
+  <path d="M181 67a82 82 0 1 0 0 122" fill="none" stroke="#111214" stroke-linecap="round" stroke-width="28"/>
+  <rect width="36" height="36" x="176" y="110" fill="#FF4F2E" rx="5"/>
+</svg>

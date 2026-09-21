@@ -22,6 +22,7 @@
   "dependencies": {
     "@base-ui/react": "catalog:",
     "@njzy/ps4-pkg-info": "workspace:^0.1.0",
+    "@noble/hashes": "2.0.1",
     "@sentry/react": "7.120.4",
     "@sentry/tracing": "7.120.4",
     "axios": "1.20.0",

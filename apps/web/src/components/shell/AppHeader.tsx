@@ -2,7 +2,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { Settings, Grid, Download } from 'react-feather'
 import { IconButton } from '@/design-system'
 import { useContainer } from '@/store/container'
-import Logo from '@/assets/icon.png'
+import Logo from '@/assets/icon.svg'
 import { HostSwitcher } from './HostSwitcher'
 export function AppHeader() {
   const navigate = useNavigate()

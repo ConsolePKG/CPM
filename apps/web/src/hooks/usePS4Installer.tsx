@@ -7,6 +7,7 @@ import { sampleTransfer, taskKey, transferPercent } from './taskProgress'
 import { RPILink } from '@/components/WebAlert'
 import {
   cancelApi,
+  TaskCleanupError,
   changeBaseUrl,
   getTaskProgressApi,
   installApi,
@@ -114,6 +115,7 @@ export const usePS4Installer = (fileServerHostId?: string) => {
         const task: InstallTask = {
           file,
           taskId: data.task_id,
+          cancelToken: data.cancel_token,
           title: data.title,
           ps4HostUrl: curPs4Host.url,
           fileServerHostId,
@@ -218,7 +220,7 @@ export const usePS4Installer = (fileServerHostId?: string) => {
             const curProgressInfo = res.find(
               (item) => item?.taskId === cur.taskId && item?.ps4HostUrl === cur.ps4HostUrl,
             )
-            if (curProgressInfo) {
+            if (curProgressInfo && !cur.cleanupPending) {
               acc.push({ ...cur, ...curProgressInfo })
             } else {
               acc.push(cur)
@@ -251,7 +253,7 @@ export const usePS4Installer = (fileServerHostId?: string) => {
         ? pauseApi(installTask.taskId, installTask.ps4HostUrl)
         : actionType === TaskActionType.RESUME
           ? resumeApi(installTask.taskId, installTask.ps4HostUrl)
-          : cancelApi(installTask.taskId, installTask.ps4HostUrl))
+          : cancelApi(installTask.taskId, installTask.ps4HostUrl, installTask.cancelToken))
       if (data.status === 'success') {
         setInstallTasks((pre) => {
           const cur = pre.find((item) => taskKey(item) === taskKey(installTask))
@@ -274,7 +276,7 @@ export const usePS4Installer = (fileServerHostId?: string) => {
         })
         Notification.success({
           title: installTask.title,
-          content: `${actionType} success`,
+          content: actionType === TaskActionType.CANCEL ? '任务已取消并删除' : `${actionType} success`,
         })
       } else {
         if (data.status === 'fail') {
@@ -282,9 +284,27 @@ export const usePS4Installer = (fileServerHostId?: string) => {
         }
       }
     } catch (err) {
+      if (err instanceof TaskCleanupError) {
+        setInstallTasks((previous) =>
+          previous.map((item) =>
+            taskKey(item) === taskKey(installTask)
+              ? {
+                  ...item,
+                  cleanupPending: true,
+                  status: TaskStatus.PAUSED,
+                  errorMessage: err.message,
+                  downloadSpeed: undefined,
+                }
+              : item,
+          ),
+        )
+      }
       Notification.error({
         title: installTask.title,
-        content: `${actionType} failed: ${(err as Error).message}`,
+        content:
+          actionType === TaskActionType.CANCEL
+            ? `取消失败，任务记录已保留：${(err as Error).message}`
+            : `${actionType} failed: ${(err as Error).message}`,
       })
     }
   }

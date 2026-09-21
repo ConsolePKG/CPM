@@ -19,7 +19,13 @@ export class WindowManager {
   isQuitting?: boolean
 
   createWindow(): BrowserWindow {
+    const icon = path.join(app.getAppPath(), 'assets/icon.png')
+    if (process.platform === 'darwin' && !app.isPackaged) {
+      app.dock?.setIcon(icon)
+    }
+
     const window = new BrowserWindow({
+      icon,
       minWidth: 800,
       minHeight: 600,
       width: 800,

@@ -27,6 +27,7 @@ export const preload = () => {
       ipcRendererInvoke('createStaticFileServer', { directoryPath, port, preferredInterface }),
     openDirectoryDialog: () => ipcRendererSendSync('openDirectoryDialog'),
     getAvailableInterfaces: () => ipcRendererInvoke('getAvailableInterfaces'),
+    discoverPS4Hosts: () => ipcRendererInvoke('discoverPS4Hosts'),
     openAppLog: () => ipcRendererInvoke('openAppLog'),
     checkUpdate: () => ipcRendererInvoke('checkUpdate'),
   }

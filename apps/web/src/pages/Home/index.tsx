@@ -19,6 +19,7 @@ export function Home() {
   const [category, setCategory] = useState<ContentFilter>('all')
   const [sort, setSort] = useState<LibrarySort>('name')
   const [cardSize, setCardSize] = useState(200)
+  const hasLibrary = fileServerHosts.length > 0 && Boolean(curHost)
   const data = filterLibrary(fileServerFiles, searchKeyWord, category, sort, settings.displayPkgRawTitle)
   const onAction = (file: FileStat, action: PkgListClickAction) => {
     if (file.type === 'directory') setPaths(file.filename.replace(/\\/g, '/').split('/'))
@@ -32,16 +33,18 @@ export function Home() {
   const props = { data, loading, displayPkgRawTitle: settings.displayPkgRawTitle, handleInstallByActionType: onAction }
   return (
     <div className="library" style={{ '--cover-min': `${cardSize}px` } as CSSProperties}>
-      <Filter
-        count={data.filter((file) => file.type !== 'directory').length}
-        category={category}
-        setCategory={setCategory}
-        sort={sort}
-        setSort={setSort}
-        cardSize={cardSize}
-        setCardSize={setCardSize}
-      />
-      {!fileServerHosts.length || !curHost ? (
+      {hasLibrary && (
+        <Filter
+          count={data.filter((file) => file.type !== 'directory').length}
+          category={category}
+          setCategory={setCategory}
+          sort={sort}
+          setSort={setSort}
+          cardSize={cardSize}
+          setCardSize={setCardSize}
+        />
+      )}
+      {!hasLibrary ? (
         <FileServerHostEmpty />
       ) : settings.pkgListUIType === PkgListUIType.table ? (
         <TableList {...props} />

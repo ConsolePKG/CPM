@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title">
+  <title id="title">ConsolePKG application icon</title>
+  <rect width="224" height="224" x="16" y="16" fill="#111214" rx="52"/>
+  <g transform="translate(34 34) scale(.735)">
+    <path d="M181 67a82 82 0 1 0 0 122" fill="none" stroke="#F7F6F2" stroke-linecap="round" stroke-width="28"/>
+    <rect width="36" height="36" x="176" y="110" fill="#FF5A36" rx="5"/>
+  </g>
+</svg>

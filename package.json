@@ -23,7 +23,8 @@
     "format": "oxfmt . && stylelint \"**/*.{css,less}\" --ignore-pattern \"**/dist/**\" --ignore-pattern \"**/types/**\" --ignore-pattern \"**/node_modules/**\" --fix",
     "tsc": "tsc -b .",
     "preinstall": "npx only-allow pnpm",
-    "web:mock": "pnpm run web:build && pnpm --filter web mock"
+    "web:mock": "pnpm run web:build && pnpm --filter web mock",
+    "cpi:sync": "node scripts/sync-cpi.mjs"
   },
   "author": "njzy <njzydark@gmail.com>",
   "license": "MIT",
