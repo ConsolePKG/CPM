@@ -2,6 +2,7 @@
 import http from 'node:http'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
+import { advanceTransfer } from './transfer.mjs'
 const root = path.resolve(import.meta.dirname, '../../..')
 const seed = {
   WebAlertV1: true,
@@ -31,33 +32,20 @@ function seedScript(reset = false) {
   }`
 }
 
-const names = [
-  'Cyberpunk 2077',
-  'God of War',
-  'Red Dead Redemption 2',
-  'Horizon Zero Dawn',
-  'The Witcher 3: Wild Hunt',
-  'Death Stranding',
-  'Sekiro: Shadows Die Twice',
-  'Detroit: Become Human',
-  'Days Gone',
-  'Hogwarts Legacy',
-  'Resident Evil 4',
-  'No Man’s Sky',
-]
-const files = names.map((name, i) => ({
+const covers = JSON.parse(await readFile(new URL('./covers/sources.json', import.meta.url), 'utf8'))
+const files = covers.map(({ name, file: cover }, i) => ({
   filename: `/${name}.pkg`,
   basename: name + '.pkg',
   type: 'file',
   size: (45 + i) * 1024 ** 3,
   lastmod: '2026-09-20T00:00:00Z',
-  icon0: `http://localhost:4180/covers/${i}.jpg`,
+  icon0: `http://localhost:4180/covers/${cover}?v=ps-square-1`,
   paramSfo: { TITLE: name, TITLE_ID: `CUSA00${i}`, CATEGORY: 'gd', CONTENT_ID: 'TEST-CONTENT-' + i, APP_VER: '01.00' },
 }))
 files.push({
   ...files[1],
-  filename: '/God of War patch.pkg',
-  basename: 'God of War patch.pkg',
+  filename: `/${covers[1].name} patch.pkg`,
+  basename: `${covers[1].name} patch.pkg`,
   size: 2 * 1024 ** 3,
   paramSfo: { ...files[1].paramSfo, CATEGORY: 'gp', APP_VER: '01.10' },
 })
@@ -67,6 +55,8 @@ const mime = {
   '.css': 'text/css',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.avif': 'image/avif',
   '.svg': 'image/svg+xml',
 }
 function json(res, body, status = 200) {
@@ -109,7 +99,15 @@ for (const port of [4180, 4181, 4182]) {
           if (operation === 'install') {
             const id = nextId++
             const title = decodeURI(data.packages[0].split('/').pop()).replace('.pkg', '')
-            tasks.set(id, { title, transferred: 8 * 1024 ** 3, paused: false })
+            tasks.set(id, {
+              title,
+              transferred: 8 * 1024 ** 3,
+              total: 45 * 1024 ** 3,
+              paused: false,
+              updatedAt: Date.now(),
+              activeSeconds: 0,
+              phase: id * 1.7,
+            })
             json(res, { status: 'success', task_id: id, title })
             return
           }
@@ -118,13 +116,13 @@ for (const port of [4180, 4181, 4182]) {
             json(res, { status: 'fail', error_code: 404 })
             return
           }
+          const remaining = advanceTransfer(task)
           if (operation === 'get_task_progress') {
-            if (!task.paused) task.transferred += 140 * 1024 ** 2
             json(res, {
               status: 'success',
-              transferred_total: task.transferred,
-              length_total: 45 * 1024 ** 3,
-              rest_sec: 900,
+              transferred_total: Math.floor(task.transferred),
+              length_total: task.total,
+              rest_sec: remaining,
             })
             return
           }
