@@ -1,5 +1,5 @@
 import { Link, Notification } from '@/components/ui'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { sampleTransfer, taskKey, transferPercent } from './taskProgress'
@@ -23,6 +23,27 @@ export const usePS4Installer = (fileServerHostId?: string) => {
     getInitConfigFromStore('curSelectPs4HostId', undefined),
   )
   const [installTasks, setInstallTasks] = useState<InstallTask[]>([])
+  const [totalSpeedHistory, setTotalSpeedHistory] = useState<number[]>([])
+  const lastSpeedSnapshot = useRef('')
+
+  useEffect(() => {
+    if (!installTasks.length) return
+    const active = installTasks.filter((task) => task.status === TaskStatus.INSTALLING)
+    const sampled = active.filter((task) => task.downloadSpeed !== undefined)
+    if (active.length && !sampled.length) return
+    // Poll results arrive as a batch: sum concurrent rates at this moment, not
+    // unrelated positions in each game's independently started history.
+    const snapshot = sampled.length
+      ? sampled
+          .map((task) => `${taskKey(task)}:${task.sampleTime}`)
+          .sort()
+          .join('|')
+      : 'idle'
+    if (snapshot === lastSpeedSnapshot.current) return
+    lastSpeedSnapshot.current = snapshot
+    const total = sampled.reduce((sum, task) => sum + (task.downloadSpeed || 0), 0)
+    setTotalSpeedHistory((previous) => [...previous.slice(-19), total])
+  }, [installTasks])
 
   const curPs4Host = ps4Hosts.find((item) => item.id === curSelectPs4HostId)
 
@@ -268,6 +289,7 @@ export const usePS4Installer = (fileServerHostId?: string) => {
 
   return {
     installTasks,
+    totalSpeedHistory,
     handleInstall,
     ps4Hosts,
     curSelectPs4HostId,

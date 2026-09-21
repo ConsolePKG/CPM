@@ -25,6 +25,21 @@ export function DetailDrawer({ visible, data, displayPkgRawTitle, handleCancel, 
       title={formatPkgName(data, displayPkgRawTitle)}
       onCancel={handleCancel}
       width={780}
+      className="game-detail-drawer"
+      background={
+        data?.icon0 ? (
+          <div className="game-detail-backdrop" aria-hidden="true">
+            <img
+              key={data.icon0}
+              src={data.icon0}
+              alt=""
+              onError={(event) => {
+                event.currentTarget.style.visibility = 'hidden'
+              }}
+            />
+          </div>
+        ) : undefined
+      }
       footer={
         <Button
           type="primary"
@@ -50,7 +65,7 @@ export function DetailDrawer({ visible, data, displayPkgRawTitle, handleCancel, 
               <p>版本 {data.paramSfo?.APP_VER || data.paramSfo?.VERSION || '—'}</p>
             </div>
           </div>
-          <Tabs.Root value={tab} onValueChange={setTab}>
+          <Tabs.Root className="game-detail-tabs" value={tab} onValueChange={setTab}>
             <Tabs.List className="detail-tabs">
               <Tabs.Tab value="info">游戏信息</Tabs.Tab>
               {Boolean(data.patchs?.length) && <Tabs.Tab value="patch">补丁 ({data.patchs!.length})</Tabs.Tab>}
@@ -71,10 +86,18 @@ export function DetailDrawer({ visible, data, displayPkgRawTitle, handleCancel, 
               </dl>
             </Tabs.Panel>
             <Tabs.Panel value="patch">
-              <SimpleList data={data.patchs || []} handleInstallByActionType={handleInstallByActionType} />
+              <SimpleList
+                fallbackCover={data.icon0}
+                data={data.patchs || []}
+                handleInstallByActionType={handleInstallByActionType}
+              />
             </Tabs.Panel>
             <Tabs.Panel value="addon">
-              <SimpleList data={data.addons || []} handleInstallByActionType={handleInstallByActionType} />
+              <SimpleList
+                fallbackCover={data.icon0}
+                data={data.addons || []}
+                handleInstallByActionType={handleInstallByActionType}
+              />
             </Tabs.Panel>
           </Tabs.Root>
         </>

@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { Settings } from 'react-feather'
+import { Settings, Grid, Download } from 'react-feather'
 import { IconButton } from '@/design-system'
 import { useContainer } from '@/store/container'
 import Logo from '@/assets/icon.png'
@@ -16,9 +16,13 @@ export function AppHeader() {
       </NavLink>
       <nav className="app-tabs" aria-label="主导航">
         <NavLink end to="/">
-          游戏库
+          <Grid className="app-tab-icon" size={20} aria-hidden="true" />
+          <span>游戏库</span>
         </NavLink>
-        <NavLink to="/tasks">安装任务</NavLink>
+        <NavLink to="/tasks">
+          <Download className="app-tab-icon" size={20} aria-hidden="true" />
+          <span>安装任务</span>
+        </NavLink>
       </nav>
       <div className="app-header-actions">
         <HostSwitcher />

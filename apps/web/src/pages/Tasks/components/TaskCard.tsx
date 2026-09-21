@@ -4,7 +4,6 @@ import { Button, IconButton, Progress, ConfirmDialog } from '@/design-system'
 import { type InstallTask, TaskActionType, TaskStatus } from '@/types'
 import { formatFileSize } from '@/utils'
 import { GameCover } from '@/pages/Home/components/GameCover'
-import { SpeedChart } from './SpeedChart'
 export function TaskCard({
   task,
   onAction,
@@ -30,7 +29,7 @@ export function TaskCard({
   }
   return (
     <article className={`task-card ${active ? 'is-downloading' : 'is-compact'}`}>
-      <div className="task-cover">
+      <div className="game-cover task-cover">
         <GameCover file={task.file} />
       </div>
       <div className="task-copy">
@@ -51,7 +50,7 @@ export function TaskCard({
                 : '—'}
           </span>
         </div>
-        <Progress percent={percent} label={`${task.title} 安装进度`} />
+        <Progress active={active && !task.errorMessage} percent={percent} label={`${task.title} 安装进度`} />
         <div className="task-facts">
           <span>
             {formatFileSize(task.progressInfo?.transferred_total || 0)} /{' '}
@@ -67,7 +66,6 @@ export function TaskCard({
           </p>
         )}
       </div>
-      {active && <SpeedChart samples={task.speedHistory || []} />}
       <div className="task-actions">
         {!complete && (
           <IconButton

@@ -1,27 +1,43 @@
+import { useId } from 'react'
+import { formatFileSize } from '@/utils'
+
 export function SpeedChart({ samples }: { samples: number[] }) {
-  if (samples.length < 2) return <div className="task-chart-empty">正在采样下载速度…</div>
-  const max = Math.max(...samples, 1)
-  const values = [...Array(Math.max(0, 20 - samples.length)).fill(0), ...samples]
+  const gradientId = useId().replace(/:/g, '')
+  const values = samples.slice(-20).map((value) => Math.max(0, Number.isFinite(value) ? value : 0))
+  if (values.length < 2) return null
+  const peak = Math.max(...values, 1)
+  const ceiling = Math.max(16 * 1024 ** 2, 2 ** Math.ceil(Math.log2(peak)))
+  const points = values.map((speed, index) => ({
+    x: 2 + ((20 - values.length + index) / 19) * 236,
+    y: 70 - (speed / ceiling) * 62,
+  }))
+  const line = points.map(({ x, y }, index) => `${index ? 'L' : 'M'}${x},${y}`).join(' ')
+  const first = points[0]
+  const last = points[points.length - 1]
   return (
     <div className="task-chart">
-      <svg viewBox="0 0 240 76" role="img" aria-label="最近下载速度变化">
-        {values.map((speed, index) => (
-          <rect
-            key={index}
-            x={index * 12}
-            y={70 - (speed / max) * 62}
-            width={7}
-            height={Math.max(1, (speed / max) * 62)}
-            rx={1}
-            fill="currentColor"
-            opacity={0.7}
-          />
-        ))}
+      <svg
+        viewBox="0 0 240 76"
+        preserveAspectRatio="none"
+        role="img"
+        aria-label={`最近总下载速度变化，峰值 ${formatFileSize(peak)}/s`}
+      >
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="currentColor" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="currentColor" stopOpacity="0.015" />
+          </linearGradient>
+        </defs>
+        <path d={`${line} L${last.x},70 L${first.x},70 Z`} fill={`url(#${gradientId})`} />
+        <path
+          d={line}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
       </svg>
-      <div>
-        <span>↓ 下载速度</span>
-        <small>最近 {samples.length} 次采样</small>
-      </div>
     </div>
   )
 }

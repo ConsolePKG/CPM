@@ -1,11 +1,27 @@
 import { Progress as BaseProgress } from '@base-ui/react/progress'
 import { Package } from 'react-feather'
 import type { ReactNode, HTMLAttributes, AnchorHTMLAttributes } from 'react'
-export function Progress({ percent = 0, label = '安装进度' }: { percent?: number; label?: string }) {
+export function Progress({
+  percent = 0,
+  label = '安装进度',
+  active = false,
+}: {
+  percent?: number
+  label?: string
+  active?: boolean
+}) {
+  const value = Number.isFinite(percent) ? Math.max(0, Math.min(100, percent)) : 0
+  const animate = active && value >= 10 && value < 100
   return (
-    <BaseProgress.Root value={Math.max(0, Math.min(100, percent))} className="cpm-progress" aria-label={label}>
-      <BaseProgress.Track>
-        <BaseProgress.Indicator />
+    <BaseProgress.Root value={value} className="cpm-progress" data-active={animate || undefined} aria-label={label}>
+      <BaseProgress.Track className="cpm-progress-track">
+        <BaseProgress.Indicator className="cpm-progress-fill" style={{ height: '100%' }}>
+          {animate && (
+            <span className="cpm-progress-energy" aria-hidden="true">
+              <span className="cpm-progress-front" />
+            </span>
+          )}
+        </BaseProgress.Indicator>
       </BaseProgress.Track>
     </BaseProgress.Root>
   )

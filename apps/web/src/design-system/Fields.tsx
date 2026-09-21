@@ -75,7 +75,7 @@ export function Select<T extends string>({
     >
       <BaseSelect.Trigger aria-label={label} className={cs('cpm-select', className)}>
         <BaseSelect.Value />
-        <BaseSelect.Icon>
+        <BaseSelect.Icon className="cpm-select-icon">
           <ChevronDown size={16} />
         </BaseSelect.Icon>
       </BaseSelect.Trigger>

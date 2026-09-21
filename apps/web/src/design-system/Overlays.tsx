@@ -2,7 +2,8 @@ import { Dialog } from '@base-ui/react/dialog'
 import { Popover as BasePopover } from '@base-ui/react/popover'
 import { AlertDialog } from '@base-ui/react/alert-dialog'
 import { X } from 'react-feather'
-import { useRef, type ReactElement, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
 import { Button, IconButton } from './Button'
 export function Drawer({
   visible,
@@ -13,6 +14,7 @@ export function Drawer({
   onOk,
   width = 560,
   className = '',
+  background,
 }: {
   visible: boolean
   title: ReactNode
@@ -22,21 +24,52 @@ export function Drawer({
   onOk?: () => void
   width?: number | string
   className?: string
+  background?: ReactNode
 }) {
+  const [present, setPresent] = useState(visible)
+  const reduceMotion = useReducedMotion()
+  useEffect(() => {
+    if (visible) setPresent(true)
+  }, [visible])
+  const transition = {
+    duration: reduceMotion ? 0 : visible ? 0.2 : 0.18,
+    ease: [0.25, 0.1, 0.25, 1] as const,
+  }
   const previousOpen = useRef(false)
   const returnFocus = useRef<HTMLElement | null>(null)
   if (visible && !previousOpen.current) returnFocus.current = document.activeElement as HTMLElement
   previousOpen.current = visible
   return (
     <Dialog.Root
-      open={visible}
+      open={visible || present}
       onOpenChange={(open) => {
         if (!open) onCancel()
       }}
     >
       <Dialog.Portal>
-        <Dialog.Backdrop className="cpm-backdrop" />
-        <Dialog.Popup className={`cpm-drawer ${className}`} style={{ width }} finalFocus={() => returnFocus.current}>
+        <Dialog.Backdrop
+          className="cpm-backdrop"
+          render={
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: visible ? 1 : 0 }} transition={transition} />
+          }
+        />
+        <Dialog.Popup
+          className={`cpm-drawer ${className}`}
+          style={{ width }}
+          finalFocus={() => returnFocus.current}
+          render={
+            <motion.div
+              initial="hidden"
+              animate={visible ? 'shown' : 'hidden'}
+              variants={{ hidden: { opacity: 0, x: reduceMotion ? 0 : 24 }, shown: { opacity: 1, x: 0 } }}
+              transition={transition}
+              onAnimationComplete={(phase) => {
+                if (phase === 'hidden' && !visible) setPresent(false)
+              }}
+            />
+          }
+        >
+          {background}
           <header>
             <Dialog.Title>{title}</Dialog.Title>
             <IconButton label="关闭" variant="text" onClick={onCancel}>
