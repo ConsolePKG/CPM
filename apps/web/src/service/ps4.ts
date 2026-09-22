@@ -72,7 +72,7 @@ export type InstallParseResponse = {
 export const installApi = <T = InstallType>(data: InstallParams<T>, hostUrl?: string) => {
   const config = hostUrl ? { baseURL: apiBaseUrl(hostUrl) } : {}
   if (isInPS4Browser) {
-    return instance.get<InstallParseResponse>('/install', { ...config, params: { data } })
+    return instance.get<InstallParseResponse>('/install', { ...config, params: { data: JSON.stringify(data) } })
   } else {
     return instance.post<InstallParseResponse>('/install', data, config)
   }
@@ -81,7 +81,7 @@ export const installApi = <T = InstallType>(data: InstallParams<T>, hostUrl?: st
 export const unstallGameApi = (title_id: string) => {
   const data = { title_id }
   if (isInPS4Browser) {
-    return instance.get<InstallParseResponse>('/install', { params: { data } })
+    return instance.get<InstallParseResponse>('/install', { params: { data: JSON.stringify(data) } })
   } else {
     return instance.post<InstallParseResponse>('/install', data)
   }
@@ -90,7 +90,7 @@ export const unstallGameApi = (title_id: string) => {
 export const unstallPatchApi = (title_id: string) => {
   const data = { title_id }
   if (isInPS4Browser) {
-    return instance.get('/uninstall_patch', { params: { data } })
+    return instance.get('/uninstall_patch', { params: { data: JSON.stringify(data) } })
   } else {
     return instance.post('/uninstall_patch', data)
   }
@@ -99,7 +99,7 @@ export const unstallPatchApi = (title_id: string) => {
 export const unstallACApi = (content_id: string) => {
   const data = { content_id }
   if (isInPS4Browser) {
-    return instance.get('/uninstall_ac', { params: { data } })
+    return instance.get('/uninstall_ac', { params: { data: JSON.stringify(data) } })
   } else {
     return instance.post('/uninstall_ac', data)
   }
@@ -108,7 +108,7 @@ export const unstallACApi = (content_id: string) => {
 export const unstallThemeApi = (content_id: string) => {
   const data = { content_id }
   if (isInPS4Browser) {
-    return instance.get('/uninstall_theme', { params: { data } })
+    return instance.get('/uninstall_theme', { params: { data: JSON.stringify(data) } })
   } else {
     return instance.post('/uninstall_theme', data)
   }
@@ -117,7 +117,7 @@ export const unstallThemeApi = (content_id: string) => {
 export const getTaskIdApi = (content_id: string, sub_type: PkgType) => {
   const data = { content_id, sub_type }
   if (isInPS4Browser) {
-    return instance.get('/find_task', { params: { data } })
+    return instance.get('/find_task', { params: { data: JSON.stringify(data) } })
   } else {
     return instance.post('/find_task', data)
   }
@@ -134,7 +134,7 @@ export const getTaskProgressApi = (task_id: number, hostUrl?: string) => {
   const data = { task_id }
   const config = hostUrl ? { baseURL: apiBaseUrl(hostUrl) } : {}
   if (isInPS4Browser) {
-    return instance.get<TaskProgressResponse>('/get_task_progress', { ...config, params: { data } })
+    return instance.get<TaskProgressResponse>('/get_task_progress', { ...config, params: { data: JSON.stringify(data) } })
   } else {
     return instance.post<TaskProgressResponse>('/get_task_progress', data, config)
   }
@@ -143,7 +143,7 @@ export const getTaskProgressApi = (task_id: number, hostUrl?: string) => {
 export const startApi = (task_id: number) => {
   const data = { task_id }
   if (isInPS4Browser) {
-    return instance.get<StatusResponse>('/start_task', { params: { data } })
+    return instance.get<StatusResponse>('/start_task', { params: { data: JSON.stringify(data) } })
   } else {
     return instance.post<StatusResponse>('/start_task', data)
   }
@@ -153,7 +153,7 @@ export const stopApi = (task_id: number, hostUrl?: string) => {
   const data = { task_id }
   const config = hostUrl ? { baseURL: apiBaseUrl(hostUrl) } : {}
   if (isInPS4Browser) {
-    return instance.get<StatusResponse>('/stop_task', { ...config, params: { data } })
+    return instance.get<StatusResponse>('/stop_task', { ...config, params: { data: JSON.stringify(data) } })
   } else {
     return instance.post<StatusResponse>('/stop_task', data, config)
   }
@@ -163,7 +163,7 @@ export const pauseApi = (task_id: number, hostUrl?: string) => {
   const data = { task_id }
   const config = hostUrl ? { baseURL: apiBaseUrl(hostUrl) } : {}
   if (isInPS4Browser) {
-    return instance.get<StatusResponse>('/pause_task', { ...config, params: { data } })
+    return instance.get<StatusResponse>('/pause_task', { ...config, params: { data: JSON.stringify(data) } })
   } else {
     return instance.post<StatusResponse>('/pause_task', data, config)
   }
@@ -173,7 +173,7 @@ export const resumeApi = (task_id: number, hostUrl?: string) => {
   const data = { task_id }
   const config = hostUrl ? { baseURL: apiBaseUrl(hostUrl) } : {}
   if (isInPS4Browser) {
-    return instance.get<StatusResponse>('/resume_task', { ...config, params: { data } })
+    return instance.get<StatusResponse>('/resume_task', { ...config, params: { data: JSON.stringify(data) } })
   } else {
     return instance.post<StatusResponse>('/resume_task', data, config)
   }
