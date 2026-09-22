@@ -18,12 +18,28 @@ import {
 } from '@/service/ps4'
 import { FileStat, InstallTask, PS4Host, TaskActionType, TaskStatus } from '@/types'
 import { getInitConfigFromStore, updateConfigStore } from '@/utils'
+import { isPlayStationBrowser } from '@/utils/browser'
+import { initializeLocalConsole, localConsoleSetupKey } from './localConsole'
 
 export const usePS4Installer = (fileServerHostId?: string) => {
-  const [ps4Hosts, setPs4Hosts] = useState<PS4Host[]>(() => getInitConfigFromStore('ps4Hosts', []))
-  const [curSelectPs4HostId, setCurSelectPs4HostId] = useState<string | undefined>(() =>
-    getInitConfigFromStore('curSelectPs4HostId', undefined),
-  )
+  const [initial] = useState(() => {
+    let enabled = isPlayStationBrowser
+    try {
+      enabled = enabled && localStorage.getItem(localConsoleSetupKey) !== '1'
+    } catch {
+      /* Storage may be unavailable in private browsing. */
+    }
+    return {
+      ...initializeLocalConsole(
+        getInitConfigFromStore('ps4Hosts', []),
+        getInitConfigFromStore('curSelectPs4HostId', undefined),
+        enabled,
+      ),
+      enabled,
+    }
+  })
+  const [ps4Hosts, setPs4Hosts] = useState<PS4Host[]>(initial.hosts)
+  const [curSelectPs4HostId, setCurSelectPs4HostId] = useState<string | undefined>(initial.selected)
   const [installTasks, setInstallTasks] = useState<InstallTask[]>([])
   const [totalSpeedHistory, setTotalSpeedHistory] = useState<number[]>([])
   const lastSpeedSnapshot = useRef('')
@@ -58,6 +74,13 @@ export const usePS4Installer = (fileServerHostId?: string) => {
   useEffect(() => {
     updateConfigStore('ps4Hosts', ps4Hosts)
     updateConfigStore('curSelectPs4HostId', curSelectPs4HostId)
+    if (initial.enabled) {
+      try {
+        localStorage.setItem(localConsoleSetupKey, '1')
+      } catch {
+        /* Keep session defaults. */
+      }
+    }
   }, [curSelectPs4HostId, ps4Hosts])
 
   const navigate = useNavigate()
