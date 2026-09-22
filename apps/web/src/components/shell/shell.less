@@ -201,7 +201,7 @@
 .app-content {
   transform-origin: 50% 30vh;
 }
-body:has(.settings-screen:not([data-closing])) {
+body:has(.settings-screen:not([data-closing]), .game-page:not([data-closing])) {
   .app-content {
     scale: 0.96;
     translate: 0 6px;
@@ -221,7 +221,7 @@ body:has(.settings-screen:not([data-closing])) {
   .app-tabs {
     transition: none;
   }
-  body:has(.settings-screen) {
+  body:has(.settings-screen, .game-page) {
     .app-content,
     .app-brand,
     .app-header-actions,

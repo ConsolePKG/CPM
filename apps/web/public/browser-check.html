@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CPM 浏览器检测</title>
+    <style>
+      body { margin: 32px; background: #17191f; color: #eee; font: 20px/1.6 sans-serif; }
+      a { color: #9fc5ff; }
+      pre { white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+  </head>
+  <body>
+    <h1>CPM 浏览器检测</h1>
+    <p>看到这行文字，说明 PS4 可以访问电脑的 HTTP 服务。</p>
+    <p id="script-status">JavaScript 尚未运行。</p>
+    <pre id="result"></pre>
+    <p>下面仅检测部分能力；全部支持也不代表完整应用一定兼容。</p>
+    <p><a href="/">打开 CPM</a></p>
+    <script>
+      (function () {
+        var rows = ['浏览器：' + navigator.userAgent, '地址：' + location.href];
+        function check(name, supported) {
+          rows.push(name + '：' + (supported ? '支持' : '不支持'));
+        }
+        check('Promise', typeof window.Promise !== 'undefined');
+        check('fetch', typeof window.fetch === 'function');
+        check('AbortController', typeof window.AbortController !== 'undefined');
+        check('IntersectionObserver', typeof window.IntersectionObserver !== 'undefined');
+        check('ResizeObserver', typeof window.ResizeObserver !== 'undefined');
+        check('ES modules', 'noModule' in document.createElement('script'));
+        check('Web Crypto', !!(window.crypto && window.crypto.subtle));
+        check('CSS Grid', !!(window.CSS && window.CSS.supports && window.CSS.supports('display', 'grid')));
+        document.getElementById('script-status').textContent = '基础 JavaScript 运行正常。';
+        document.getElementById('result').textContent = rows.join('\n');
+      }());
+    </script>
+  </body>
+</html>

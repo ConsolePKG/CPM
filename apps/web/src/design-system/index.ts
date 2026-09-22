@@ -5,3 +5,5 @@ export * from './Notifications'
 export * from './Feedback'
 export * from './ThemeProvider'
 import './components.less'
+
+export * from './Disclosure'

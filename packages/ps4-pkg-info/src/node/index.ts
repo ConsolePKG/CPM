@@ -57,3 +57,18 @@ export const getPs4PkgInfo = async (pkgFilePath: string, options?: Options): Pro
   }
   return res
 }
+
+export type { Artwork, ArtworkEntry, ArtworkImage, Resource, Trophy, TrophySet, TrophyLanguage } from '../resources'
+export async function getPs4PkgArtwork(path: string) {
+  const { extractArtwork } = await import('../resources')
+  return extractArtwork(createSeek(path))
+}
+export async function getPs4PkgTrophies(path: string, options?: { language?: string }) {
+  const { extractTrophies } = await import('../resources')
+  return extractTrophies(createSeek(path), options?.language)
+}
+
+export async function getPs4PkgArtworkImage(path: string, id: number) {
+  const { extractArtworkImage } = await import('../resources')
+  return extractArtworkImage(createSeek(path), id)
+}

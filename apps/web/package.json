@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "rsbuild dev",
     "build": "rsbuild build",
-    "preview": "rsbuild preview",
+    "preview": "rsbuild preview --host 0.0.0.0 --port 5173",
     "tsc": "tsc --noEmit",
     "lint": "oxlint src --deny-warnings",
     "format:check": "oxfmt src --check",
@@ -22,12 +22,13 @@
   "dependencies": {
     "@base-ui/react": "catalog:",
     "@njzy/ps4-pkg-info": "workspace:^0.1.0",
-    "@noble/hashes": "2.0.1",
+    "@noble/hashes": "2.4.0",
     "@sentry/react": "7.120.4",
     "@sentry/tracing": "7.120.4",
     "axios": "1.20.0",
     "classnames": "2.5.1",
     "common": "workspace:^1.0.0-beta.8",
+    "core-js": "^3.50.0",
     "dayjs": "1.11.23",
     "framer-motion": "^13.4.0",
     "json5": "2.2.3",

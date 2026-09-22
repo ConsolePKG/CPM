@@ -133,3 +133,34 @@ reports network failures and preserves the distinction between payload transfer
 and a verified CPI response. Wait for active installations to finish before
 reloading CPI. On an offline result, confirm the old instance has stopped before
 sending another payload.
+
+### PKG artwork and trophies
+
+Game details open in a full-screen route with the library kept mounted underneath.
+The hero initially uses a blurred cover and fades in PIC1 after decoding; missing
+artwork retains the cover backdrop. The primary install button uses the existing selected-host installation flow.
+Returning restores the library view; trophy parsing remains tab-triggered.
+
+The Artwork tab displays actual PIC*.PNG entries with PIC1 first, then PIC0,
+each followed by its localized variants; other PIC images follow in natural filename order. Images load as they approach the viewport and can
+be exported individually. Other image resources remain available through the
+package API but are not shown as artwork.
+This does not scan textures inside PFS or trophy archives. Trophy definitions/icons
+load only when the Trophies tab is selected. Ordinary library scanning still reads only SFO and
+ICON0. Complete results are cached by URL, filename, size, ETag and modification
+time with a bounded in-memory cache; switching files or closing the drawer aborts
+pending reads. Network errors can be retried. Encrypted/unsupported resources
+show their status rather than blocking the library or installation.
+
+### PS4 browser preview
+
+Run `pnpm web:build` followed by `pnpm web:preview`. Preview listens on
+`0.0.0.0:5173`; open the computer's LAN address from the PS4 browser.
+`/browser-check.html` provides basic browser capability diagnostics.
+WebDAV servers must permit the `Range` request header in CORS preflight responses,
+in addition to authorization and directory-listing headers.
+
+The PS4 profile uses native controller navigation, static route transitions,
+opaque surfaces and legacy layout fallbacks. PKG scanning concurrency remains
+unchanged. Dependencies are transpiled for older WebKit, with a scoped Base UI
+patch for its bounded focus history when `WeakRef` is unavailable.

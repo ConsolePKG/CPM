@@ -1,10 +1,14 @@
 import { useEffect } from 'react'
+import { isPlayStationBrowser } from '@/utils/browser'
 import { useLocation, useNavigate } from 'react-router-dom'
 // Geometric navigation follows the actual responsive layout, including portal dialogs.
 export function useControllerNavigation() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   useEffect(() => {
+    // PS4 already provides controller navigation. A second input loop can
+    // duplicate clicks/movement and repeatedly force layout during native scroll.
+    if (isPlayStationBrowser) return
     let frame = 0
     let previous: boolean[] = []
     let lastMove = 0

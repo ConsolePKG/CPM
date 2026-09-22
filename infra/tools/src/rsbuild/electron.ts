@@ -1,5 +1,6 @@
 import { defineConfig, mergeRsbuildConfig, type RsbuildConfig } from '@rsbuild/core'
 import path from 'node:path'
+import { pluginSourceBuild } from '@rsbuild/plugin-source-build'
 
 export type ElectronRsbuildOptions = Partial<RsbuildConfig> & {
   entry?: Record<string, string>
@@ -15,6 +16,7 @@ export const defineElectronConfig = (options: ElectronRsbuildOptions = {}) => {
   return defineConfig(
     mergeRsbuildConfig(
       {
+        plugins: [pluginSourceBuild()],
         source: { entry },
         output: {
           target: 'node',

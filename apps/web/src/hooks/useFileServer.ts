@@ -109,7 +109,14 @@ export const useFileServer = ({
       const { data } = await axios.get(
         `${curHost?.url}/api/files?path=${encodeURI(path)}&recursiveQuery=${curHost.recursiveQuery}`,
       )
-      res = data || []
+      res = (data || []).map((item: FileStat) => ({
+        ...item,
+        downloadUrl:
+          item.downloadUrl ||
+          (item.type === 'file'
+            ? `${curHost.url.replace(/\/$/, '')}/${item.filename.split('/').filter(Boolean).map(encodeURIComponent).join('/')}`
+            : undefined),
+      }))
     }
     return sortServerFiles(res)
   }

@@ -1,0 +1,34 @@
+diff --git a/floating-ui-react/components/FloatingFocusManager.js b/floating-ui-react/components/FloatingFocusManager.js
+index 5d5b40c9500cd0f4f546dd62ef38d3900e3b6519..7734b877752d9c7c2878fef6dffcd3488dc4e7ed 100644
+--- a/floating-ui-react/components/FloatingFocusManager.js
++++ b/floating-ui-react/components/FloatingFocusManager.js
+@@ -66,7 +66,11 @@ function clearDisconnectedPreviouslyFocusedElements() {
+ function addPreviouslyFocusedElement(element) {
+   clearDisconnectedPreviouslyFocusedElements();
+   if (element && (0, _dom.getNodeName)(element) !== 'body') {
+-    previouslyFocusedElements.push(new WeakRef(element));
++    // Old WebKit has no WeakRef. This fallback is limited to the bounded
++    // focus history above; disconnected elements are removed on each access.
++    previouslyFocusedElements.push(typeof WeakRef === 'function' ? new WeakRef(element) : {
++      deref: () => element
++    });
+     if (previouslyFocusedElements.length > LIST_LIMIT) {
+       previouslyFocusedElements = previouslyFocusedElements.slice(-LIST_LIMIT);
+     }
+diff --git a/floating-ui-react/components/FloatingFocusManager.mjs b/floating-ui-react/components/FloatingFocusManager.mjs
+index 8a6039fc4fb65de89bb4bfcca286ef819a54fcf4..12b08c59a9def8b9601bf098740a234e6370c6d8 100644
+--- a/floating-ui-react/components/FloatingFocusManager.mjs
++++ b/floating-ui-react/components/FloatingFocusManager.mjs
+@@ -60,7 +60,11 @@ function clearDisconnectedPreviouslyFocusedElements() {
+ function addPreviouslyFocusedElement(element) {
+   clearDisconnectedPreviouslyFocusedElements();
+   if (element && getNodeName(element) !== 'body') {
+-    previouslyFocusedElements.push(new WeakRef(element));
++    // Old WebKit has no WeakRef. This fallback is limited to the bounded
++    // focus history above; disconnected elements are removed on each access.
++    previouslyFocusedElements.push(typeof WeakRef === 'function' ? new WeakRef(element) : {
++      deref: () => element
++    });
+     if (previouslyFocusedElements.length > LIST_LIMIT) {
+       previouslyFocusedElements = previouslyFocusedElements.slice(-LIST_LIMIT);
+     }

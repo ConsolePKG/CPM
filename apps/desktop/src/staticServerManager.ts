@@ -74,6 +74,12 @@ class StaticServerManager {
         })
 
         this.server.on('request', (req, res) => {
+          if (req.method === 'OPTIONS') {
+            this.setCorsHeaders(res)
+            res.statusCode = 204
+            res.end()
+            return
+          }
           const { url } = req
           if (url?.startsWith('/api')) {
             this.handleApiRequest(req, res)
@@ -118,6 +124,8 @@ class StaticServerManager {
 
   setDownloadHeaders(res: http.ServerResponse, path: string) {
     res.setHeader('Content-Disposition', contentDisposition(path))
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Accept-Ranges')
   }
 
   setCorsHeaders(res: http.ServerResponse) {

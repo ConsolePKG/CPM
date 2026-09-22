@@ -6,7 +6,7 @@ import { FileServerHostEmpty } from './components/FileServerHostEmpty'
 import { Filter } from './components/Filter'
 import { CardList } from './components/CardList'
 import { TableList } from './components/TableList'
-import { DetailDrawer } from './components/DetailDrawer'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { filterLibrary, type ContentFilter, type LibrarySort } from './library'
 import './library.less'
 export function Home() {
@@ -15,7 +15,8 @@ export function Home() {
     settings,
     handleInstall,
   } = useContainer()
-  const [detail, setDetail] = useState<FileStat>()
+  const navigate = useNavigate()
+  const location = useLocation()
   const [category, setCategory] = useState<ContentFilter>('all')
   const [sort, setSort] = useState<LibrarySort>('name')
   const [cardSize, setCardSize] = useState(200)
@@ -28,7 +29,7 @@ export function Home() {
       (action === PkgListClickAction.auto && settings.pkgListClickAction === PkgListClickAction.install)
     )
       void handleInstall(file)
-    else setDetail(file)
+    else navigate('/game', { state: { backgroundLocation: location, file } })
   }
   const props = { data, loading, displayPkgRawTitle: settings.displayPkgRawTitle, handleInstallByActionType: onAction }
   return (
@@ -51,13 +52,6 @@ export function Home() {
       ) : (
         <CardList {...props} />
       )}
-      <DetailDrawer
-        visible={Boolean(detail)}
-        data={detail}
-        displayPkgRawTitle={settings.displayPkgRawTitle}
-        handleCancel={() => setDetail(undefined)}
-        handleInstallByActionType={onAction}
-      />
     </div>
   )
 }

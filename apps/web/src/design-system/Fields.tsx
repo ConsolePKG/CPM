@@ -1,5 +1,6 @@
 import { Input as Primitive } from '@base-ui/react/input'
 import { Select as BaseSelect } from '@base-ui/react/select'
+import { Checkbox as BaseCheckbox } from '@base-ui/react/checkbox'
 import { Switch as BaseSwitch } from '@base-ui/react/switch'
 import { RadioGroup } from '@base-ui/react/radio-group'
 import { Radio } from '@base-ui/react/radio'
@@ -7,7 +8,7 @@ import { Field } from '@base-ui/react/field'
 import { Check, ChevronDown } from 'react-feather'
 import { forwardRef, useId, type ComponentProps, type ReactNode } from 'react'
 import cs from 'classnames'
-export type InputProps = Omit<ComponentProps<typeof Primitive>, 'onChange' | 'className'> & {
+export type InputProps = Omit<ComponentProps<typeof Primitive>, 'onChange' | 'className' | 'prefix'> & {
   onChange?: (value: string) => void
   prefix?: ReactNode
   className?: string
@@ -157,5 +158,30 @@ export function SettingRow({
       </div>
       <div className="cpm-setting-control">{children}</div>
     </section>
+  )
+}
+
+export function Checkbox({
+  checked,
+  onChange,
+  label,
+  disabled,
+  className,
+}: {
+  checked: boolean
+  onChange: (value: boolean) => void
+  label: string
+  disabled?: boolean
+  className?: string
+}) {
+  return (
+    <label className={cs('cpm-checkbox-label', className)}>
+      <BaseCheckbox.Root checked={checked} onCheckedChange={onChange} disabled={disabled} className="cpm-checkbox">
+        <BaseCheckbox.Indicator className="cpm-checkbox-indicator">
+          <Check size={13} strokeWidth={3} />
+        </BaseCheckbox.Indicator>
+      </BaseCheckbox.Root>
+      <span>{label}</span>
+    </label>
   )
 }

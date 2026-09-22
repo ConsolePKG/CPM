@@ -497,3 +497,64 @@
     padding: 20px;
   }
 }
+
+.cpm-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  font-size: 13px;
+  line-height: 20px;
+  cursor: pointer;
+}
+.cpm-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--surface-2);
+  color: var(--inverse);
+}
+.cpm-checkbox[data-checked] {
+  background: var(--solid);
+  border-color: var(--solid);
+}
+.cpm-checkbox[data-disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.cpm-checkbox-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cpm-checkbox:focus-visible,
+.cpm-disclosure-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.cpm-disclosure-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  padding: 10px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.cpm-disclosure-trigger > svg {
+  flex-shrink: 0;
+  transform: rotate(-90deg);
+}
+.cpm-disclosure-trigger[data-panel-open] > svg {
+  transform: rotate(0);
+}

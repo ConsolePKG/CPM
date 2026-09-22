@@ -17,6 +17,7 @@
     "desktop:dist": "pnpm --filter desktop run dist",
     "web:dev": "pnpm --filter @njzy/ps4-pkg-info build && pnpm --filter web dev",
     "web:build": "pnpm --filter @njzy/ps4-pkg-info build && pnpm --filter web build",
+    "web:preview": "pnpm --filter web preview",
     "build": "pnpm run web:build && pnpm --filter desktop build",
     "lint": "oxlint . --deny-warnings",
     "format:check": "oxfmt . --check && stylelint \"**/*.{css,less}\" --ignore-pattern \"**/dist/**\" --ignore-pattern \"**/types/**\" --ignore-pattern \"**/node_modules/**\"",

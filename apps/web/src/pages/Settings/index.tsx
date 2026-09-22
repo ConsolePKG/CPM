@@ -1,5 +1,7 @@
+import { isPlayStationBrowser } from '@/utils/browser'
+import { RouteSurface } from '@/components/RouteSurface'
 import { useState } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
+import { useReducedMotion } from 'framer-motion'
 import { Dialog } from '@base-ui/react/dialog'
 import { X } from 'react-feather'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -60,7 +62,10 @@ export const Settings = () => {
       : 'servers'
     : location.pathname.split('/')[2] || 'general'
   const title = sections.flatMap((group) => group.items).find((item) => item.id === section)?.title || '常规'
-  const close = () => setOpen(false)
+  const close = () => {
+    if (isPlayStationBrowser) finishClose()
+    else setOpen(false)
+  }
   const finishClose = () => {
     if (state?.backgroundLocation) navigate(-1)
     else navigate('/', { replace: true })
@@ -74,7 +79,7 @@ export const Settings = () => {
     >
       <Dialog.Portal>
         <Dialog.Backdrop className="settings-backdrop">
-          <motion.div
+          <RouteSurface
             className="settings-scrim"
             initial={{ opacity: 0 }}
             animate={{ opacity: open ? 1 : 0 }}
@@ -86,7 +91,7 @@ export const Settings = () => {
           data-closing={!open || undefined}
           finalFocus={() => document.getElementById('settings-trigger')}
           render={
-            <motion.div
+            <RouteSurface
               initial="hidden"
               animate={open ? 'visible' : 'exiting'}
               variants={{
@@ -102,7 +107,7 @@ export const Settings = () => {
           }
         >
           <aside className="settings-sidebar">
-            <motion.div className="settings-nav-inner" variants={contentMotion} transition={transition}>
+            <RouteSurface className="settings-nav-inner" variants={contentMotion} transition={transition}>
               <div className="settings-brand">
                 CPM<small>设置</small>
               </div>
@@ -124,9 +129,9 @@ export const Settings = () => {
                 </div>
               ))}
               <p className="settings-version">CPM · {_app_version}</p>
-            </motion.div>
+            </RouteSurface>
           </aside>
-          <motion.div
+          <RouteSurface
             key={section}
             className="settings-body"
             variants={contentMotion}
@@ -232,7 +237,7 @@ export const Settings = () => {
                 <p className="muted">这些功能仅在桌面端提供。</p>
               ))}
             {section === 'about' && <Info />}
-          </motion.div>
+          </RouteSurface>
           <div className="settings-close">
             <IconButton label="关闭设置" variant="text" onClick={close}>
               <X />

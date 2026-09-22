@@ -1,0 +1,110 @@
+// PS4 WebKit lacks flex gap and several modern CSS layout functions.
+// Keep this profile scoped: desktop retains motion and translucent surfaces.
+html.ps4-browser {
+  --page-gutter: 32px;
+  --glass: var(--bg);
+  --scrim: rgba(0, 0, 0, 0.45);
+
+  .ps4-background-page {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  body {
+    -webkit-font-smoothing: auto;
+    font-size: 16px;
+  }
+  *,
+  *::before,
+  *::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+  .game-page,
+  .game-page-scroll,
+  .settings-screen {
+    transform: none !important;
+  }
+  .detail-hero {
+    min-height: 460px;
+    padding: 170px 32px 32px;
+  }
+  .detail-hero-fallback,
+  .detail-hero-art,
+  .detail-hero-shade {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+  }
+  .detail-hero-fallback img {
+    display: none;
+  }
+  .detail-hero-shade {
+    background: linear-gradient(to bottom, transparent, var(--bg));
+  }
+  .detail-hero-content {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-gap: 32px;
+  }
+  .detail-game-identity > .game-cover {
+    margin-right: 28px;
+  }
+  .detail-game-titles h1 {
+    font-size: 32px;
+    line-height: 1.25;
+    overflow-wrap: break-word;
+  }
+  .detail-identity-line > *,
+  .detail-facts > * {
+    margin-right: 20px;
+    margin-bottom: 8px;
+  }
+  .detail-identity-line,
+  .detail-facts,
+  .detail-facts strong {
+    font-size: 15px;
+  }
+  .game-page-content {
+    padding: 0 32px 48px;
+  }
+  .game-page .detail-tabs {
+    position: static;
+    background: var(--bg);
+  }
+  .settings-nav-inner,
+  .app-header,
+  .library-toolbar {
+    position: static;
+  }
+  .app-shell::before {
+    display: none;
+  }
+  .app-brand > img,
+  .cpm-button > svg {
+    margin-right: 8px;
+  }
+  .app-tabs > a + a,
+  .app-header-actions > * + *,
+  .trophy-total > * + *,
+  .trophy-count > * + *,
+  .trophy-grade > * + * {
+    margin-left: 8px;
+  }
+  .trophy-row > * + * {
+    margin-left: 14px;
+  }
+  .game-page .pkg-artwork-grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+  .game-grid {
+    grid-gap: 28px 26px;
+  }
+  @media (max-width: 960px) {
+    .detail-hero-content {
+      grid-template-columns: 1fr;
+    }
+  }
+}

@@ -1,0 +1,281 @@
+.game-page-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 89;
+}
+.game-page-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+}
+.game-page {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+}
+.game-page-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.game-page-scroll {
+  position: relative;
+  isolation: isolate;
+  z-index: 0;
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+}
+.detail-hero {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+  min-height: clamp(430px, 55vh, 650px);
+  display: flex;
+  align-items: flex-end;
+  padding: 160px clamp(24px, 5vw, 80px) 32px;
+  background: var(--surface-2);
+}
+.detail-hero-fallback,
+.detail-hero-art,
+.detail-hero-shade {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.detail-hero-fallback {
+  overflow: hidden;
+  z-index: 0;
+}
+.detail-hero-fallback img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(65px);
+  transform: scale(1.2);
+  opacity: 0.45;
+}
+.detail-hero-art {
+  object-fit: cover;
+  object-position: center 35%;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 450ms ease;
+}
+.detail-hero-art[data-ready] {
+  opacity: 1;
+}
+.detail-hero-shade {
+  z-index: 2;
+  background: linear-gradient(
+    180deg,
+    transparent 5%,
+    color-mix(in srgb, var(--bg), transparent 55%) 42%,
+    var(--bg) 100%
+  );
+}
+.detail-hero-content {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 40px;
+}
+.detail-game-identity {
+  display: flex;
+  align-items: flex-end;
+  gap: 28px;
+  min-width: 0;
+}
+.detail-game-identity .game-cover {
+  width: 160px;
+  width: clamp(120px, 14vw, 190px);
+  flex-shrink: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 12px 40px #0004;
+}
+.detail-game-titles {
+  min-width: 0;
+}
+.detail-game-titles h1 {
+  font-size: clamp(26px, 3vw, 46px);
+  line-height: 1.15;
+  letter-spacing: -0.6px;
+  margin: 12px 0 18px;
+  overflow-wrap: anywhere;
+}
+.detail-identity-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+.detail-identity-line > span:first-child {
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-weight: 600;
+}
+.detail-title-id.cpm-button {
+  min-height: 28px;
+  padding: 2px 6px;
+  font-size: 12px;
+  gap: 5px;
+  color: var(--muted);
+}
+.detail-title-id.cpm-button svg {
+  width: 12px;
+  height: 12px;
+}
+.detail-original-title {
+  color: var(--muted);
+  margin: -8px 0 16px;
+  font-size: 14px;
+}
+.detail-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.detail-facts strong {
+  display: block;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+}
+.detail-copy-status {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  min-height: 16px;
+  margin-top: 4px;
+}
+.detail-install-button {
+  min-width: 180px;
+  min-height: 48px;
+  margin-bottom: 20px;
+}
+.game-page-content {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 clamp(24px, 5vw, 80px) 64px;
+}
+.game-page .detail-tabs {
+  top: 0;
+  margin-inline: 0;
+  padding-inline: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--bg), transparent 8%);
+  z-index: 5;
+}
+.game-page .game-metadata {
+  margin: 0;
+}
+.game-page .game-metadata dd {
+  margin: 0;
+}
+.game-page .game-metadata-raw {
+  margin-top: 28px;
+}
+.game-page .game-metadata-raw > .cpm-disclosure-trigger {
+  font-size: 14px;
+  font-weight: 600;
+}
+.game-page .metadata-copy {
+  min-height: 26px;
+  padding: 2px 8px;
+  margin-left: 8px;
+  font-size: 11px;
+}
+.game-page .pkg-artwork-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+}
+.game-page .trophy-panel-heading {
+  padding-top: 4px;
+}
+@media (width <= 960px) {
+  .detail-hero-content {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .detail-hero {
+    padding-top: 230px;
+  }
+  .detail-install-button {
+    justify-self: start;
+    margin-bottom: 0;
+  }
+}
+@media (width <= 560px) {
+  .detail-hero {
+    padding: 170px 20px 20px;
+  }
+  .detail-game-identity {
+    gap: 16px;
+    align-items: center;
+  }
+  .detail-game-identity .game-cover {
+    width: 90px;
+  }
+  .detail-game-titles h1 {
+    font-size: 25px;
+  }
+  .detail-facts {
+    gap: 8px 12px;
+  }
+  .game-page .game-metadata > div {
+    grid-template-columns: 110px 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .detail-hero-art {
+    transition: none;
+  }
+}
+
+// Keep the shared settings close geometry, with an opaque surface over artwork.
+// This sibling layer must remain above every sticky element inside the scroller.
+.game-page > .settings-close {
+  z-index: 10;
+}
+.game-page > .settings-close .cpm-icon-button {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--muted);
+  box-shadow: 0 2px 12px #0003;
+}
+.game-page > .settings-close .cpm-icon-button:hover {
+  background: var(--surface-2);
+}
+.game-page > .settings-close .cpm-icon-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.game-page > .settings-close small {
+  padding: 3px 0;
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--text);
+  line-height: 1.4;
+  box-shadow: 0 1px 6px #0002;
+}

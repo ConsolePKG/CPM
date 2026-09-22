@@ -6,7 +6,8 @@ CPM 使用 Base UI 的无样式交互组件，视觉由本目录统一定义。�
 
 - `tokens.less`：语义颜色、间距、圆角、阴影与动效。日夜模式共用 token 名，业务样式使用 `var(--…)`，不自行判断主题。
 - `ThemeProvider.tsx`：浅色、深色、跟随系统；持久化选择并兼容旧主题偏好。挂载到应用根部。
-- `Button.tsx` / `Fields.tsx`：按钮、图标按钮、输入框、选择、开关、单选与设置行。
+- `Button.tsx` / `Fields.tsx`：按钮、图标按钮、输入框、选择、复选框、开关、单选与设置行。
+- `Disclosure.tsx`：基于 Base UI Collapsible 的可折叠内容，统一箭头与键盘焦点。
 - `Overlays.tsx`：抽屉、确认弹窗和悬浮面板，使用 Base UI 管理焦点、Escape 和弹层。
 - `Feedback.tsx` / `Notifications.tsx`：进度、加载、空状态与通知。
 - `components.less`：基础组件的尺寸、状态、焦点与响应式样式。

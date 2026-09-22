@@ -4,8 +4,38 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>CPM</title>
+    <script>
+      // Keep startup diagnostics readable even when the application bundle cannot parse.
+      (function () {
+        function showStartupError(message) {
+          var root = document.getElementById('root');
+          if (root && root.childNodes.length) return;
+          function show() {
+            var panel = document.getElementById('startup-error');
+            if (!panel) {
+              panel = document.createElement('pre');
+              panel.id = 'startup-error';
+              panel.style.cssText = 'padding:24px;white-space:pre-wrap;word-wrap:break-word;color:#eee;background:#17191f;font:18px/1.6 sans-serif;';
+              document.body.appendChild(panel);
+            }
+            panel.textContent = 'CPM 启动失败，请提供以下信息：\n\n' + message + '\n\n' + navigator.userAgent;
+          }
+          if (document.body) show();
+          else document.addEventListener('DOMContentLoaded', show);
+        }
+        window.addEventListener('error', function (event) {
+          if (event.target && event.target.tagName === 'SCRIPT') {
+            showStartupError('脚本加载失败：' + event.target.src);
+          } else if (event.message) {
+            showStartupError(event.message + '\n' + (event.filename || '') + ':' + event.lineno + ':' + event.colno);
+          }
+        }, true);
+        window.addEventListener('unhandledrejection', function (event) {
+          var reason = event.reason;
+          showStartupError(String(reason && (reason.stack || reason.message) || reason));
+        });
+      }());
+    </script>
   </head>
-  <body>
-    <script type="module" src="/src/index.tsx"></script>
-  </body>
+  <body></body>
 </html>

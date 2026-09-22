@@ -4,6 +4,7 @@ packages:
   - infra/*
 
 allowBuilds:
+  core-js: false
   electron-winstaller: true
 
 catalog:
@@ -27,3 +28,6 @@ catalog:
   react-dom: 19.3.0
   react-router-dom: 7.18.4
   typescript: 7.0.2
+
+patchedDependencies:
+  '@base-ui/react@1.8.0': patches/@base-ui__react@1.8.0.patch
