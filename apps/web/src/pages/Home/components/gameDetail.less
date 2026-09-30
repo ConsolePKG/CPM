@@ -26,6 +26,195 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+.game-page-header {
+  position: relative;
+  z-index: 10;
+  flex: none;
+  background: var(--glass);
+}
+.game-page-header .app-header {
+  position: relative;
+  padding-right: calc(var(--page-gutter) + 60px);
+}
+.game-page-desktop-toolbar {
+  position: relative;
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: none;
+  height: 56px;
+  padding: 0 calc(var(--page-gutter) + 68px) 0 var(--page-gutter);
+  border-bottom: 1px solid var(--line);
+  background: var(--glass);
+  -webkit-app-region: drag;
+}
+.game-page-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+body:has(.app-shell-mac) .game-page-desktop-toolbar {
+  padding-left: max(var(--page-gutter), 90px);
+}
+.game-page-desktop-toolbar .cpm-button {
+  -webkit-app-region: no-drag;
+}
+.game-page-back {
+  flex: none;
+  padding: 7px 10px;
+  background: transparent;
+}
+.game-page-compact-identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding-left: 14px;
+  border-left: 1px solid var(--line);
+}
+.game-page-compact-cover {
+  display: block;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.game-page-compact-cover img,
+.game-page-library-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.game-page-compact-cover .game-cover-placeholder,
+.game-page-library-thumb .game-cover-placeholder {
+  height: 100%;
+  gap: 0;
+}
+.game-page-compact-cover .game-cover-placeholder svg,
+.game-page-library-thumb .game-cover-placeholder svg {
+  width: 18px;
+  height: 18px;
+}
+.game-page-compact-cover .game-cover-placeholder span,
+.game-page-library-thumb .game-cover-placeholder span {
+  display: none;
+}
+.game-page-compact-identity strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+}
+.game-page-switcher {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.game-page-position {
+  min-width: 68px;
+  margin-right: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: right;
+}
+.game-page-switcher .cpm-icon-button {
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 8px;
+  background: transparent;
+}
+.game-page-library-drawer {
+  position: absolute;
+  z-index: 11;
+  top: 112px;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  width: 26px;
+  overflow: hidden;
+  transition: width var(--motion-fast);
+}
+.game-page-library-drawer[data-open] {
+  width: min(320px, calc(100vw - 64px));
+  border-right: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.game-page-library-handle {
+  position: absolute;
+  top: 40%;
+  left: 0;
+  width: 26px;
+  height: 104px;
+  padding: 10px 4px;
+  border: 1px solid var(--line);
+  border-left: 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--surface-2);
+  color: var(--muted);
+  writing-mode: vertical-rl;
+  font-size: 11px;
+  cursor: pointer;
+}
+.game-page-library-drawer[data-open] .game-page-library-handle {
+  top: 0;
+  height: 100%;
+  border-radius: 0;
+}
+.game-page-library-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  width: 100%;
+  padding: 20px 12px 12px 38px;
+}
+.game-page-library-panel > strong {
+  font-size: 15px;
+}
+.game-page-library-panel > span {
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.game-page-library-list {
+  min-height: 0;
+  overflow: auto;
+}
+.game-page-library-item.cpm-button {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 48px;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  text-align: left;
+}
+.game-page-library-item[data-current] {
+  background: var(--surface-2);
+}
+.game-page-library-thumb {
+  display: block;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.game-page-library-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .game-page-scroll {
   position: relative;
   isolation: isolate;
@@ -36,6 +225,7 @@
 }
 .detail-hero {
   position: relative;
+  overflow: hidden;
   z-index: 0;
   isolation: isolate;
   min-height: clamp(430px, 55vh, 650px);
@@ -74,6 +264,22 @@
 }
 .detail-hero-art[data-ready] {
   opacity: 1;
+}
+.detail-hero-art[data-motion] {
+  transform-origin: center 35%;
+  animation: detail-artwork-breathe 12s ease-in-out infinite alternate;
+  animation-play-state: paused;
+}
+.detail-hero-art[data-running] {
+  animation-play-state: running;
+}
+@keyframes detail-artwork-breathe {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.15);
+  }
 }
 .detail-hero-shade {
   z-index: 2;
@@ -188,6 +394,9 @@
   background: color-mix(in srgb, var(--bg), transparent 8%);
   z-index: 5;
 }
+body:has(.app-shell-mac) .game-page:not(:has(.game-page-desktop-toolbar)) .detail-tabs {
+  padding-left: 72px;
+}
 .game-page .game-metadata {
   margin: 0;
 }
@@ -250,6 +459,38 @@
 @media (prefers-reduced-motion: reduce) {
   .detail-hero-art {
     transition: none;
+    animation: none;
+  }
+}
+
+// DLC keeps ICON0-derived soft colors without fetching hero artwork.
+.detail-icon-colors {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.game-page .detail-hero.detail-hero-compact {
+  min-height: 0;
+  padding: 100px 32px 28px;
+  background: var(--bg);
+}
+.detail-hero-compact .detail-game-identity .game-cover {
+  width: 96px;
+  box-shadow: none;
+}
+.detail-hero-compact .detail-game-titles h1 {
+  font-size: 26px;
+}
+@media (max-width: 560px) {
+  .game-page .detail-hero.detail-hero-compact {
+    padding: 88px 20px 24px;
+  }
+  .detail-hero-compact .detail-game-identity .game-cover {
+    width: 72px;
   }
 }
 
@@ -278,4 +519,7 @@
   color: var(--text);
   line-height: 1.4;
   box-shadow: 0 1px 6px #0002;
+}
+.game-page:has(.game-page-header) > .settings-close small {
+  display: none;
 }

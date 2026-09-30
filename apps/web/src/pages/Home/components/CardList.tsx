@@ -1,13 +1,18 @@
 import { PkgListClickAction } from 'common/types/configStore'
+import { memo } from 'react'
 import { Button, Empty, Spin } from '@/design-system'
 import { formatFileSize, formatPkgName } from '@/utils'
-import { useContainer } from '@/store/container'
 import type { TableListProps } from './TableList'
 import { GameCover } from './GameCover'
 import { GameActions } from './GameActions'
-export function CardList({ data, loading, displayPkgRawTitle, handleInstallByActionType }: TableListProps) {
-  const { settings } = useContainer()
-  if (loading) return <Spin />
+export const CardList = memo(function CardList({
+  data,
+  loading,
+  displayPkgRawTitle,
+  clickAction,
+  handleInstallByActionType,
+}: TableListProps) {
+  if (loading) return <Spin tip="正在读取游戏库目录…" />
   if (!data.length) return <Empty description="没有找到符合条件的游戏" />
   return (
     <div className="game-grid">
@@ -23,7 +28,7 @@ export function CardList({ data, loading, displayPkgRawTitle, handleInstallByAct
               <span className="game-cover-action">
                 {file.type === 'directory'
                   ? '打开文件夹'
-                  : settings.pkgListClickAction === PkgListClickAction.install
+                  : clickAction === PkgListClickAction.install
                     ? '安装游戏'
                     : '查看详情'}
               </span>
@@ -35,5 +40,5 @@ export function CardList({ data, loading, displayPkgRawTitle, handleInstallByAct
       ))}
     </div>
   )
-}
+})
 export default CardList

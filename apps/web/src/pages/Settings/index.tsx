@@ -161,13 +161,15 @@ export const Settings = () => {
                     ]}
                   />
                 </SettingRow>
-                <SettingRow title="显示应用 Logo" description="在顶部 CPM 品牌区域显示应用 Logo。">
-                  <Switch
-                    label="显示应用 Logo"
-                    checked={settings.displayLogo}
-                    onChange={(value) => chnageSettings({ displayLogo: value })}
-                  />
-                </SettingRow>
+                {!window.electron && (
+                  <SettingRow title="显示应用 Logo" description="在顶部 CPM 品牌区域显示应用 Logo。">
+                    <Switch
+                      label="显示应用 Logo"
+                      checked={settings.displayLogo}
+                      onChange={(value) => chnageSettings({ displayLogo: value })}
+                    />
+                  </SettingRow>
+                )}
               </>
             )}
             {section === 'library' && (

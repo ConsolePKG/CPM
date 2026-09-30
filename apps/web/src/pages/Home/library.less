@@ -10,6 +10,33 @@
   margin: 0 calc(-1 * var(--page-gutter)) 12px;
   padding: 6px var(--page-gutter);
 }
+.app-shell-desktop .library-toolbar {
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.app-shell-mac .library-toolbar {
+  padding-left: max(var(--page-gutter), 90px);
+}
+.app-shell-desktop .library-category {
+  padding-left: 0;
+}
+.app-shell-desktop .library-count {
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+}
+.app-shell-desktop .library-search .cpm-input-shell {
+  height: 36px;
+}
+.app-shell-desktop .library-toolbar .cpm-select {
+  height: 36px;
+  min-height: 36px;
+}
+.app-shell-desktop .library-toolbar-right > .cpm-icon-button {
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+}
 .library-toolbar-left,
 .library-toolbar-right {
   display: flex;

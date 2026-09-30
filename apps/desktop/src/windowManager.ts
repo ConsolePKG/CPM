@@ -30,7 +30,8 @@ export class WindowManager {
       minHeight: 600,
       width: 800,
       height: 600,
-      titleBarStyle: 'default',
+      titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+      ...(process.platform === 'darwin' ? { trafficLightPosition: { x: 12, y: 21 } } : {}),
       autoHideMenuBar: true,
       frame: true,
       webPreferences: {

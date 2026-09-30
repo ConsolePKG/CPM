@@ -1,6 +1,9 @@
 .app-shell {
   min-height: 100vh;
 }
+body:has(.app-shell-desktop) {
+  --header-height: 56px;
+}
 // One continuous glass surface avoids a blur seam between the two sticky rows.
 .app-shell::before {
   content: '';
@@ -25,6 +28,59 @@
   gap: 20px;
   height: var(--header-height);
   padding: 0 var(--page-gutter);
+}
+.app-shell-desktop .app-brand {
+  display: none;
+}
+.app-shell-desktop .app-header {
+  grid-template-columns: minmax(0, 1fr) auto;
+  border-bottom: 1px solid var(--line);
+}
+.app-shell-desktop .app-tabs {
+  grid-column: 1;
+  justify-self: start;
+  align-self: stretch;
+  gap: 4px;
+}
+.app-shell-desktop .app-tabs a {
+  padding: 0 14px;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  font-size: 14px;
+  font-weight: 550;
+}
+.app-shell-desktop .app-tabs a:hover {
+  background: transparent;
+  color: var(--text);
+}
+.app-shell-desktop .app-tabs a.active {
+  background: transparent;
+  color: var(--text);
+  border-bottom-color: var(--text);
+  font-weight: 650;
+}
+.app-shell-desktop .app-header-actions {
+  grid-column: 2;
+  gap: 4px;
+}
+.app-shell-desktop .host-trigger {
+  height: 36px;
+  min-height: 36px;
+  padding: 6px 12px;
+}
+.app-shell-desktop .app-header-actions > .cpm-icon-button {
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+}
+.app-shell-mac .app-header {
+  padding-left: max(var(--page-gutter), 90px);
+  -webkit-app-region: drag;
+}
+.app-shell-mac .app-tabs,
+.app-shell-mac .app-header-actions,
+body:has(.settings-screen, .game-page) .app-shell.app-shell-mac > .app-header {
+  -webkit-app-region: no-drag;
 }
 .app-brand {
   display: flex;
@@ -117,24 +173,24 @@
   :root {
     --header-height: 72px;
   }
-  html {
+  html:not(:has(.app-shell-desktop)) {
     scroll-padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
   }
-  .app-header {
+  .app-shell:not(.app-shell-desktop) .app-header {
     grid-template-columns: auto 1fr;
     gap: 12px;
   }
-  .app-header-actions {
+  .app-shell:not(.app-shell-desktop) .app-header-actions {
     grid-column: 2;
     gap: 8px;
   }
-  .app-brand img {
+  .app-shell:not(.app-shell-desktop) .app-brand img {
     display: none;
   }
-  .host-trigger {
+  .app-shell:not(.app-shell-desktop) .host-trigger {
     max-width: min(200px, 38vw);
   }
-  .app-tabs {
+  .app-shell:not(.app-shell-desktop) .app-tabs {
     position: fixed;
     left: 50%;
     bottom: calc(18px + env(safe-area-inset-bottom, 0px));
@@ -151,11 +207,11 @@
       0 8px 32px rgb(0 0 0 / 18%),
       inset 0 1px 0 rgb(255 255 255 / 12%);
   }
-  .app-tab-icon {
+  .app-shell:not(.app-shell-desktop) .app-tab-icon {
     display: block;
     flex-shrink: 0;
   }
-  .app-tabs a {
+  .app-shell:not(.app-shell-desktop) .app-tabs a {
     min-height: 48px;
     min-width: 120px;
     padding: 11px 18px;
@@ -166,15 +222,15 @@
       color var(--motion-fast);
     -webkit-tap-highlight-color: transparent;
   }
-  .app-tabs a.active {
+  .app-shell:not(.app-shell-desktop) .app-tabs a.active {
     color: var(--text);
     background: color-mix(in srgb, var(--text), transparent 90%);
     box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text), transparent 94%);
   }
-  .app-tabs a:active {
+  .app-shell:not(.app-shell-desktop) .app-tabs a:active {
     background: color-mix(in srgb, var(--text), transparent 85%);
   }
-  .app-content {
+  .app-shell:not(.app-shell-desktop) .app-content {
     padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
   }
 }

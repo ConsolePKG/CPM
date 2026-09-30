@@ -37,6 +37,9 @@
   font-size: 25px;
   font-weight: 800;
 }
+body:has(.app-shell-desktop) .settings-brand {
+  display: none;
+}
 .settings-brand small {
   display: block;
   margin-top: 7px;
@@ -127,41 +130,41 @@
   }
 }
 @media (max-width: 850px) {
-  .settings-screen {
+  body:not(:has(.app-shell-desktop)) .settings-screen {
     display: block;
     background: var(--bg);
   }
-  .settings-sidebar {
+  body:not(:has(.app-shell-desktop)) .settings-sidebar {
     padding: 20px;
     border-right: 0;
     border-bottom: 1px solid var(--line);
   }
-  .settings-brand {
+  body:not(:has(.app-shell-desktop)) .settings-brand {
     padding: 0 52px 16px 0;
   }
-  .settings-nav-inner {
+  body:not(:has(.app-shell-desktop)) .settings-nav-inner {
     position: static;
     max-width: none;
     margin: 0;
   }
-  .settings-nav-group {
+  body:not(:has(.app-shell-desktop)) .settings-nav-group {
     display: inline;
     margin: 0;
   }
-  .settings-nav-group h3,
-  .settings-version,
-  .settings-brand small {
+  body:not(:has(.app-shell-desktop)) .settings-nav-group h3,
+  body:not(:has(.app-shell-desktop)) .settings-version,
+  body:not(:has(.app-shell-desktop)) .settings-brand small {
     display: none;
   }
-  .settings-nav-group .cpm-button {
+  body:not(:has(.app-shell-desktop)) .settings-nav-group .cpm-button {
     width: auto;
     font-size: 12px;
     padding: 8px 10px;
   }
-  .settings-body {
+  body:not(:has(.app-shell-desktop)) .settings-body {
     padding: 28px 20px;
   }
-  .settings-close small {
+  body:not(:has(.app-shell-desktop)) .settings-close small {
     display: none;
   }
 }

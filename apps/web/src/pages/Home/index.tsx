@@ -1,5 +1,5 @@
 import { PkgListClickAction, PkgListUIType } from 'common/types/configStore'
-import { useState, type CSSProperties } from 'react'
+import { useCallback, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useContainer } from '@/store/container'
 import type { FileStat } from '@/types'
 import { FileServerHostEmpty } from './components/FileServerHostEmpty'
@@ -21,17 +21,35 @@ export function Home() {
   const [sort, setSort] = useState<LibrarySort>('name')
   const [cardSize, setCardSize] = useState(200)
   const hasLibrary = fileServerHosts.length > 0 && Boolean(curHost)
-  const data = filterLibrary(fileServerFiles, searchKeyWord, category, sort, settings.displayPkgRawTitle)
-  const onAction = (file: FileStat, action: PkgListClickAction) => {
-    if (file.type === 'directory') setPaths(file.filename.replace(/\\/g, '/').split('/'))
-    else if (
-      action === PkgListClickAction.install ||
-      (action === PkgListClickAction.auto && settings.pkgListClickAction === PkgListClickAction.install)
-    )
-      void handleInstall(file)
-    else navigate('/game', { state: { backgroundLocation: location, file } })
+  const data = useMemo(
+    () => filterLibrary(fileServerFiles, searchKeyWord, category, sort, settings.displayPkgRawTitle),
+    [fileServerFiles, searchKeyWord, category, sort, settings.displayPkgRawTitle],
+  )
+  const detailOrder = useMemo(
+    () => data.filter((file) => file.type !== 'directory').map((file) => file.filename),
+    [data],
+  )
+  const handleInstallRef = useRef(handleInstall)
+  handleInstallRef.current = handleInstall
+  const onAction = useCallback(
+    (file: FileStat, action: PkgListClickAction) => {
+      if (file.type === 'directory') setPaths(file.filename.replace(/\\/g, '/').split('/'))
+      else if (
+        action === PkgListClickAction.install ||
+        (action === PkgListClickAction.auto && settings.pkgListClickAction === PkgListClickAction.install)
+      )
+        void handleInstallRef.current(file)
+      else navigate('/game', { state: { backgroundLocation: location, file, detailOrder } })
+    },
+    [detailOrder, location, navigate, setPaths, settings.pkgListClickAction],
+  )
+  const props = {
+    data,
+    loading,
+    displayPkgRawTitle: settings.displayPkgRawTitle,
+    clickAction: settings.pkgListClickAction,
+    handleInstallByActionType: onAction,
   }
-  const props = { data, loading, displayPkgRawTitle: settings.displayPkgRawTitle, handleInstallByActionType: onAction }
   return (
     <div className="library" style={{ '--cover-min': `${cardSize}px` } as CSSProperties}>
       {hasLibrary && (

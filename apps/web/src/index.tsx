@@ -3,9 +3,10 @@ import './ps4.less'
 import { isPlayStationBrowser } from './utils/browser'
 
 import { createRoot } from 'react-dom/client'
-import { HashRouter } from 'react-router-dom'
+import { BrowserRouter, HashRouter } from 'react-router-dom'
 
-const Router = HashRouter
+// Packaged Electron loads index.html over file:// and still needs hash routing.
+const Router = location.protocol === 'file:' ? HashRouter : BrowserRouter
 
 import { App } from './app'
 import { CustomErrorBoundary } from './components/CustomErrorBoundary'

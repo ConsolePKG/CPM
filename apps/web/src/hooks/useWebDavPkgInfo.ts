@@ -1,70 +1,75 @@
-import { getPs4PkgInfo, Ps4PkgParamSfo } from '@njzy/ps4-pkg-info/web'
-import { SetStateAction, useEffect, useState } from 'react'
+import type { Ps4PkgParamSfo } from '@njzy/ps4-pkg-info/web'
+import { useEffect, useRef, useState, type SetStateAction } from 'react'
+import type { FileStat } from '@/types'
+import { beginLibraryPkgScan, getLibraryPkgInfo } from './pkgInfoReader'
 
-import { FileStat } from '@/types'
-
-type Options = {
-  setFileServerFiles: (value: SetStateAction<FileStat[]>) => void
-}
+type CachedInfo = { icon0?: string; paramSfo?: Ps4PkgParamSfo }
+type Options = { setFileServerFiles: (value: SetStateAction<FileStat[]>) => void }
 
 export const useWebDavPkgInfo = ({ setFileServerFiles }: Options) => {
-  const [pkgInfoData, setPkgInfoData] = useState<{ name: string; icon0?: string; paramSfo?: Ps4PkgParamSfo }[]>([])
+  const cache = useRef(new Map<string, CachedInfo>())
+  const pending = useRef(new Map<string, CachedInfo>())
+  const frame = useRef<number | undefined>(undefined)
+  const generation = useRef(0)
   const [pkgInfoDataLoading, setPkgInfoDataLoading] = useState(false)
 
-  const getWebDavPkgFileInfo = async (data: FileStat[]) => {
-    try {
-      const promises = data.map(async (item) => {
-        try {
-          const res = await getPs4PkgInfo(item.downloadUrl!)
-          if (res) {
-            const url = res.icon0Raw ? window.URL.createObjectURL(new Blob([new Uint8Array(res.icon0Raw)])) : undefined
-            const newData = {
-              name: item.basename,
-              icon0: url,
-              paramSfo: res.paramSfo,
-            }
-            setPkgInfoData((pre) => {
-              const curData = pkgInfoData.find((cache) => cache.name === item.basename)
-              if (curData) {
-                Object.assign(curData, newData)
-                return [...pre]
-              } else {
-                pre.push(newData)
-              }
-              return [...pre]
-            })
-          }
-        } catch (err) {
-          return
-        }
+  const flush = () => {
+    frame.current = undefined
+    if (!pending.current.size) return
+    const updates = new Map(pending.current)
+    pending.current.clear()
+    setFileServerFiles((files) => {
+      let changed = false
+      const next = files.map((file) => {
+        const info = updates.get(file.downloadUrl || '')
+        if (!info || (file.icon0 === info.icon0 && file.paramSfo === info.paramSfo)) return file
+        changed = true
+        return { ...file, ...info }
       })
-      setPkgInfoDataLoading(true)
-      await Promise.all(promises)
-    } catch (err) {
-      console.error('getWebDavPkgFileInfo', err)
-    } finally {
-      setPkgInfoDataLoading(false)
-    }
+      return changed ? next : files
+    })
   }
 
-  useEffect(() => {
-    if (pkgInfoData.length) {
-      setFileServerFiles((pre) => {
-        return pre.map((item) => {
-          const curCache = pkgInfoData.find((cache) => cache.name === item.basename)
-          if (curCache) {
-            item.icon0 = curCache.icon0
-            item.paramSfo = curCache.paramSfo
-          }
-          return item
-        })
+  const getWebDavPkgFileInfo = async (files: FileStat[]) => {
+    const currentGeneration = ++generation.current
+    setPkgInfoDataLoading(files.length > 0)
+    if (files.length) beginLibraryPkgScan()
+    await Promise.all(
+      files.map(async (file) => {
+        try {
+          const info = await getLibraryPkgInfo(file.downloadUrl!)
+          if (!info || generation.current !== currentGeneration) return
+          const url = info.icon0Raw ? URL.createObjectURL(new Blob([new Uint8Array(info.icon0Raw)])) : undefined
+          const previous = cache.current.get(file.downloadUrl!)
+          if (previous?.icon0 && previous.icon0 !== url) URL.revokeObjectURL(previous.icon0)
+          const cached = { icon0: url, paramSfo: info.paramSfo }
+          cache.current.set(file.downloadUrl!, cached)
+          pending.current.set(file.downloadUrl!, cached)
+          if (frame.current === undefined) frame.current = requestAnimationFrame(flush)
+        } catch {
+          // One invalid PKG should not block the rest of the library.
+        }
+      }),
+    )
+    if (generation.current === currentGeneration) setPkgInfoDataLoading(false)
+  }
+
+  useEffect(
+    () => () => {
+      generation.current += 1
+      if (frame.current !== undefined) cancelAnimationFrame(frame.current)
+      cache.current.forEach((info) => {
+        if (info.icon0) URL.revokeObjectURL(info.icon0)
       })
-    }
-  }, [pkgInfoData])
+      cache.current.clear()
+      pending.current.clear()
+    },
+    [],
+  )
 
   return {
     getWebDavPkgFileInfo,
-    pkgInfoData,
+    getCachedPkgInfo: (url: string) => cache.current.get(url),
     pkgInfoDataLoading,
   }
 }

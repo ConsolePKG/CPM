@@ -1,18 +1,22 @@
 import { RouteSurface } from '@/components/RouteSurface'
+import { AppHeader } from '@/components/shell/AppHeader'
 import { throwIfAborted } from '@/utils/abort'
 import { isPlayStationBrowser } from '@/utils/browser'
 import { Tabs } from '@base-ui/react/tabs'
 import { Dialog } from '@base-ui/react/dialog'
 import { useReducedMotion } from 'framer-motion'
-import { X, Download, Copy } from 'react-feather'
-import { useEffect, useRef, useState } from 'react'
+import { ArrowLeft, ChevronLeft, ChevronRight, X, Download, Copy } from 'react-feather'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { PkgListClickAction } from 'common/types/configStore'
 import { Button, IconButton, Disclosure } from '@/design-system'
 import { useContainer } from '@/store/container'
+import type { GameLocationState } from '@/routes'
 import type { FileStat } from '@/types'
 import { formatFileSize, formatPkgName } from '@/utils'
 import { GameCover } from './GameCover'
+import { HeroArtwork } from './HeroArtwork'
+import { IconColorBackdrop } from './IconColorBackdrop'
 import { SimpleList } from './SimpleList'
 import { PkgResourcePanel } from './PkgResourcePanel'
 import { formatPkgCategory, formatSystemVersion } from '../pkgMetadata'
@@ -20,21 +24,36 @@ import { loadPkgResource, resourceKey } from '../pkgResources'
 import './gameDetail.less'
 
 export function GameDetailPage({ data, hasBackground }: { data?: FileStat; hasBackground: boolean }) {
-  const { settings, handleInstall } = useContainer()
+  const { settings, handleInstall, fileServer } = useContainer()
   const displayPkgRawTitle = settings.displayPkgRawTitle
   const navigate = useNavigate()
   const location = useLocation()
+  const locationState = location.state as GameLocationState | null
   const [open, setOpen] = useState(true)
   const prefersReducedMotion = useReducedMotion()
   const reduceMotion = prefersReducedMotion || isPlayStationBrowser
   const [copyStatus, setCopyStatus] = useState('')
+  const [compactIdentity, setCompactIdentity] = useState(false)
+  const [libraryOpen, setLibraryOpen] = useState(false)
   const [tab, setTab] = useState<string | number>('info')
   const [art, setArt] = useState<{ key: string; url: string }>()
-  const [showArt, setShowArt] = useState(false)
   const returnFocus = useRef(document.activeElement as HTMLElement | null)
   const scroll = useRef<HTMLDivElement>(null)
+  const hero = useRef<HTMLElement>(null)
+  const libraryList = useRef<HTMLDivElement>(null)
   const key = data ? resourceKey(data) : ''
-  const artUrl = art?.key === key ? art.url : undefined
+  const siblings = useMemo(() => {
+    const files = new Map(fileServer.fileServerFiles.map((file) => [file.filename, file]))
+    return (locationState?.detailOrder || []).flatMap((filename) => {
+      const file = files.get(filename)
+      return file ? [file] : []
+    })
+  }, [fileServer.fileServerFiles, locationState?.detailOrder])
+  const siblingIndex = siblings.findIndex((file) => file.filename === data?.filename)
+  const previousGame = siblingIndex > 0 ? siblings[siblingIndex - 1] : undefined
+  const nextGame = siblingIndex >= 0 ? siblings[siblingIndex + 1] : undefined
+  const isDlc = data?.paramSfo?.CATEGORY === 'ac'
+  const artUrl = !isDlc && art?.key === key ? art.url : undefined
   const title = formatPkgName(data, displayPkgRawTitle)
   const transition = { duration: reduceMotion ? 0 : open ? 0.2 : 0.18, ease: [0.25, 0.1, 0.25, 1] as const }
   const close = () => {
@@ -45,15 +64,18 @@ export function GameDetailPage({ data, hasBackground }: { data?: FileStat; hasBa
     if (hasBackground) navigate(-1)
     else navigate('/', { replace: true })
   }
+  const switchGame = (file: FileStat) => {
+    navigate('/game', { replace: true, state: { ...locationState, file } })
+  }
   const handleInstallByActionType = (file: FileStat, action: PkgListClickAction) => {
     if (action === PkgListClickAction.install) void handleInstall(file)
   }
   useEffect(() => {
     setTab('info')
     setCopyStatus('')
-    setShowArt(false)
+    setCompactIdentity(false)
     scroll.current?.scrollTo(0, 0)
-    if (!data) return
+    if (!data || isDlc) return
     const controller = new AbortController()
     const load = async () => {
       const entries = await loadPkgResource(data, 'artwork', controller.signal)
@@ -75,8 +97,43 @@ export function GameDetailPage({ data, hasBackground }: { data?: FileStat; hasBa
       /* Keep the cover backdrop when artwork is unavailable. */
     })
     return () => controller.abort()
+  }, [key, isDlc])
+  useEffect(() => {
+    if (!window.electron || !scroll.current || !hero.current) return
+    const observer = new IntersectionObserver(([entry]) => setCompactIdentity(!entry.isIntersecting), {
+      root: scroll.current,
+      threshold: 0,
+    })
+    observer.observe(hero.current)
+    return () => observer.disconnect()
   }, [key])
+  useEffect(() => {
+    if (!libraryOpen || !libraryList.current) return
+    const active = libraryList.current.querySelector<HTMLElement>('[data-current]')
+    if (active)
+      libraryList.current.scrollTop =
+        active.offsetTop - libraryList.current.offsetTop - libraryList.current.clientHeight / 2
+  }, [libraryOpen, siblingIndex])
   const nestedSettings = location.pathname.startsWith('/settings')
+  useEffect(() => {
+    if (!window.electron || nestedSettings || !open) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+      if (
+        (event.target as Element | null)?.closest(
+          'input, textarea, select, [contenteditable="true"], [role="tablist"], [role="slider"], [role="menu"], [role="listbox"]',
+        )
+      )
+        return
+      const file = event.key === 'ArrowLeft' ? previousGame : nextGame
+      if (!file) return
+      event.preventDefault()
+      switchGame(file)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [nestedSettings, nextGame, open, previousGame, locationState, navigate])
   return (
     <Dialog.Root
       open
@@ -109,6 +166,96 @@ export function GameDetailPage({ data, hasBackground }: { data?: FileStat; hasBa
           }
         >
           <Dialog.Title className="game-page-title">{title || '游戏详情'}</Dialog.Title>
+          {window.electron && (
+            <>
+              <div
+                className={`game-page-header app-shell-desktop${window.electron.platform === 'darwin' ? ' app-shell-mac' : ''}`}
+              >
+                <AppHeader />
+              </div>
+              <div className="game-page-desktop-toolbar">
+                <div className="game-page-toolbar-left">
+                  <Button variant="text" className="game-page-back" icon={<ArrowLeft size={18} />} onClick={close}>
+                    返回列表
+                  </Button>
+                  {compactIdentity && data && (
+                    <div className="game-page-compact-identity">
+                      <span className="game-page-compact-cover">
+                        <GameCover file={data} />
+                      </span>
+                      <strong title={title}>{title}</strong>
+                    </div>
+                  )}
+                </div>
+                {siblingIndex >= 0 && (
+                  <div className="game-page-switcher" aria-label="切换游戏">
+                    <span className="game-page-position" aria-live="polite">
+                      {siblingIndex + 1} / {siblings.length}
+                    </span>
+                    <IconButton
+                      label="上一个游戏（←）"
+                      variant="text"
+                      disabled={!previousGame}
+                      onClick={() => switchGame(previousGame!)}
+                    >
+                      <ChevronLeft />
+                    </IconButton>
+                    <IconButton
+                      label="下一个游戏（→）"
+                      variant="text"
+                      disabled={!nextGame}
+                      onClick={() => switchGame(nextGame!)}
+                    >
+                      <ChevronRight />
+                    </IconButton>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+          {window.electron && siblings.length > 1 && (
+            <aside
+              className="game-page-library-drawer"
+              data-open={libraryOpen || undefined}
+              onMouseEnter={() => setLibraryOpen(true)}
+              onMouseLeave={() => setLibraryOpen(false)}
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) setLibraryOpen(false)
+              }}
+            >
+              <button
+                type="button"
+                className="game-page-library-handle"
+                aria-label="浏览游戏库列表"
+                aria-expanded={libraryOpen}
+                onClick={() => setLibraryOpen(true)}
+              >
+                游戏库
+              </button>
+              {libraryOpen && (
+                <div className="game-page-library-panel">
+                  <strong>游戏库</strong>
+                  <span>{siblings.length} 款游戏 · 悬停快速切换</span>
+                  <div className="game-page-library-list" ref={libraryList}>
+                    {siblings.map((file) => (
+                      <Button
+                        key={file.filename}
+                        variant="text"
+                        className="game-page-library-item"
+                        data-current={file.filename === data?.filename || undefined}
+                        onClick={() => switchGame(file)}
+                      >
+                        <span className="game-page-library-thumb">
+                          <GameCover file={file} />
+                        </span>
+                        <span className="game-page-library-name">{formatPkgName(file, displayPkgRawTitle)}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </aside>
+          )}
           <div className="settings-close">
             <IconButton label="关闭游戏详情" variant="text" onClick={close}>
               <X />
@@ -128,20 +275,17 @@ export function GameDetailPage({ data, hasBackground }: { data?: FileStat; hasBa
               </div>
             ) : (
               <>
-                <section className="detail-hero">
-                  <div className="detail-hero-fallback" aria-hidden="true">
-                    {data.icon0 && <img src={data.icon0} alt="" />}
-                  </div>
-                  {artUrl && (
-                    <img
-                      className="detail-hero-art"
-                      data-ready={showArt || undefined}
-                      src={artUrl}
-                      alt=""
-                      onLoad={() => setShowArt(true)}
-                    />
+                <section ref={hero} className={`detail-hero${isDlc ? ' detail-hero-compact' : ''}`}>
+                  {isDlc && <IconColorBackdrop src={data.icon0} />}
+                  {!isDlc && (
+                    <div className="detail-hero-fallback" aria-hidden="true">
+                      {data.icon0 && <img src={data.icon0} alt="" />}
+                    </div>
                   )}
-                  <div className="detail-hero-shade" />
+                  {artUrl && (
+                    <HeroArtwork key={artUrl} src={artUrl} animate={!reduceMotion && open && !nestedSettings} />
+                  )}
+                  {!isDlc && <div className="detail-hero-shade" />}
                   <div className="detail-hero-content">
                     <div className="detail-game-identity">
                       <div className="game-cover">

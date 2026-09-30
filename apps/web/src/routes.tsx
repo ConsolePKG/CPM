@@ -18,7 +18,7 @@ export const routes: RouteObject[] = [
     ],
   },
 ]
-export type GameLocationState = { backgroundLocation?: Location; file?: FileStat }
+export type GameLocationState = { backgroundLocation?: Location; file?: FileStat; detailOrder?: string[] }
 export type SettingsLocationState = { backgroundLocation?: Location }
 export const useRouterElement = () => {
   const location = useLocation()
@@ -37,9 +37,7 @@ export const useRouterElement = () => {
   )
   return (
     <>
-      <div className={isPlayStationBrowser && (isGame || isSettings) ? 'ps4-background-page' : undefined}>
-        {main}
-      </div>
+      <div className={isPlayStationBrowser && (isGame || isSettings) ? 'ps4-background-page' : undefined}>{main}</div>
       {isGame && <GameDetailPage data={gameState?.file} hasBackground={Boolean(gameState?.backgroundLocation)} />}
       {isSettings && <Settings />}
     </>

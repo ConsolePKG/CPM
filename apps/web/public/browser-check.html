@@ -8,6 +8,9 @@
       body { margin: 32px; background: #17191f; color: #eee; font: 20px/1.6 sans-serif; }
       a { color: #9fc5ff; }
       pre { white-space: pre-wrap; word-wrap: break-word; }
+      button { font: inherit; padding: 6px 14px; }
+      #input-target { display: inline-block; padding: 12px; border: 2px solid #9fc5ff; }
+      #input-target:focus { outline: 3px solid #fff; }
     </style>
   </head>
   <body>
@@ -15,6 +18,16 @@
     <p>看到这行文字，说明 PS4 可以访问电脑的 HTTP 服务。</p>
     <p id="script-status">JavaScript 尚未运行。</p>
     <pre id="result"></pre>
+    <h2>手柄与返回键实测</h2>
+    <p>按“开始测试”后操作手柄，观察实际按键编号和浏览器事件。测试持续 20 秒，也可提前停止。标准映射中 0 通常是 ×、1 通常是 ○，以本机结果为准。</p>
+    <button id="input-toggle" type="button">开始测试</button>
+    <p><span id="input-target" tabindex="0">输入测试区域（开始后会自动聚焦）</span></p>
+    <pre id="gamepad-result">尚未开始。</pre>
+    <pre id="event-result">尚未开始。</pre>
+    <p>测试期间会对收到的键盘事件，以及测试区域内的指针和点击事件调用 preventDefault() 与 stopPropagation()。Gamepad API 只提供按键状态，没有可取消的按键事件；JS 事件已拦截也不代表能阻止 PS4 浏览器或系统的原生返回。</p>
+    <h2>最近一次 CPM 游戏库加载</h2>
+    <pre id="library-result">暂无记录。</pre>
+    <p>先打开 CPM 游戏库，再返回本页查看。这里的解析方式来自 CPM 实际运行结果，不是上面的独立 Worker 测试。</p>
     <p>下面仅检测部分能力；全部支持也不代表完整应用一定兼容。</p>
     <p><a href="/">打开 CPM</a></p>
     <script>
@@ -24,15 +37,250 @@
           rows.push(name + '：' + (supported ? '支持' : '不支持'));
         }
         check('Promise', typeof window.Promise !== 'undefined');
+        check('CPM PS4 浏览器识别', /PlayStation 4/i.test(navigator.userAgent));
         check('fetch', typeof window.fetch === 'function');
         check('AbortController', typeof window.AbortController !== 'undefined');
         check('IntersectionObserver', typeof window.IntersectionObserver !== 'undefined');
         check('ResizeObserver', typeof window.ResizeObserver !== 'undefined');
         check('ES modules', 'noModule' in document.createElement('script'));
         check('Web Crypto', !!(window.crypto && window.crypto.subtle));
+        rows.push('安全上下文（isSecureContext）：' + (typeof window.isSecureContext === 'boolean' ? (window.isSecureContext ? '是' : '否') : '浏览器未提供此状态'));
+        try {
+          var storageKey = 'cpm-browser-check-' + Date.now();
+          localStorage.setItem(storageKey, 'ok');
+          var storageWorks = localStorage.getItem(storageKey) === 'ok';
+          localStorage.removeItem(storageKey);
+          rows.push('localStorage：' + (storageWorks ? '支持（写入并读回成功）' : '读回数据不一致'));
+        } catch (error) {
+          rows.push('localStorage：读写失败（' + error.message + '）');
+        }
+        var getGamepads = navigator.getGamepads || navigator.webkitGetGamepads;
+        if (typeof getGamepads === 'function') {
+          try {
+            var gamepads = getGamepads.call(navigator) || [];
+            var connected = 0;
+            for (var i = 0; i < gamepads.length; i++) if (gamepads[i] && gamepads[i].connected !== false) connected++;
+            rows.push('Gamepad API：支持，检测到 ' + connected + ' 个手柄');
+          } catch (error) {
+            rows.push('Gamepad API：调用失败（' + error.message + '）');
+          }
+        } else rows.push('Gamepad API：不支持');
+        var indexedDbRow = rows.length;
+        rows.push('IndexedDB：检测中…');
         check('CSS Grid', !!(window.CSS && window.CSS.supports && window.CSS.supports('display', 'grid')));
+        try {
+          var diagnostic = JSON.parse(localStorage.getItem('cpm-library-diagnostics') || 'null');
+          if (diagnostic && diagnostic.updatedAt) {
+            var modes = {
+              waiting: '等待目录列表返回，尚未开始解析',
+              'worker-started': '已创建 CPM Worker，尚未收到回复',
+              worker: 'CPM Worker 已处理并回复 PKG 请求，正在使用',
+              'worker-error': 'CPM Worker 已运行，但 PKG 解析报错',
+              main: '已回退到主线程',
+              server: '元数据由文件服务器提供，浏览器未运行 PKG 解析 Worker',
+              'not-needed': '无需解析（已缓存或当前目录没有 PKG）'
+            };
+            document.getElementById('library-result').textContent = [
+              '记录时间：' + new Date(diagnostic.updatedAt).toLocaleString(),
+              '资源库类型：' + (diagnostic.hostType || '未知'),
+              '目录请求：' + (diagnostic.listingState || '未知') + (diagnostic.listingMs !== undefined ? '，' + diagnostic.listingMs + ' ms' : ''),
+              '条目数：' + (diagnostic.fileCount === undefined ? '未知' : diagnostic.fileCount),
+              'PKG 解析：' + (modes[diagnostic.readerMode] || '尚无记录'),
+              diagnostic.readerReason ? '回退原因：' + diagnostic.readerReason : '',
+              diagnostic.tasksNavigationMs !== undefined ? '切换到安装任务：约 ' + diagnostic.tasksNavigationMs + ' ms' : '',
+              diagnostic.settingsNavigationMs !== undefined ? '打开设置：约 ' + diagnostic.settingsNavigationMs + ' ms' : '',
+              diagnostic.navigationInputType ? '最近输入到 click：' + (diagnostic.navigationInputMs === undefined ? '无法测量' : diagnostic.navigationInputMs + ' ms') + '（' + diagnostic.navigationInputType + '）' : '',
+              diagnostic.navigationTo ? '最近路由切换：' + diagnostic.navigationTo + '，约 ' + diagnostic.navigationMs + ' ms（点击至两帧后）' : ''
+            ].filter(Boolean).join('\n');
+          }
+        } catch (error) {
+          document.getElementById('library-result').textContent = '读取诊断记录失败：' + error.message;
+        }
+        var workerRow = rows.length;
+        rows.push('Web Worker：检测中…');
+        var workerFetchRow = rows.length;
+        rows.push('Worker 内 fetch：检测中…');
+        function render() {
+          document.getElementById('result').textContent = rows.join('\n');
+        }
+        function finishWorkerCheck(worker, timer, workerStatus, fetchStatus) {
+          clearTimeout(timer);
+          if (worker) worker.terminate();
+          rows[workerRow] = 'Web Worker：' + workerStatus;
+          rows[workerFetchRow] = 'Worker 内 fetch：' + fetchStatus;
+          render();
+        }
         document.getElementById('script-status').textContent = '基础 JavaScript 运行正常。';
-        document.getElementById('result').textContent = rows.join('\n');
+        render();
+        function checkIndexedDb() {
+          var dbName = 'cpm-browser-check-' + Date.now() + '-' + Math.floor(Math.random() * 1000000);
+          var db = null;
+          var finished = false;
+          var timer = null;
+          var factory;
+          function finish(message) {
+            if (finished) return;
+            finished = true;
+            clearTimeout(timer);
+            rows[indexedDbRow] = 'IndexedDB：' + message;
+            render();
+            try {
+              if (db) db.close();
+              if (factory) factory.deleteDatabase(dbName);
+            } catch (error) {
+              rows[indexedDbRow] += '（清理失败：' + error.message + '）';
+              render();
+            }
+          }
+          try {
+            factory = window.indexedDB || window.webkitIndexedDB || window.mozIndexedDB || window.msIndexedDB;
+            if (!factory) {
+              finish('不支持');
+              return;
+            }
+            timer = setTimeout(function () { finish('超时（10 秒内未完成读写）'); }, 10000);
+            var request = factory.open(dbName, 1);
+            request.onupgradeneeded = function (event) {
+              event.target.result.createObjectStore('probe');
+            };
+            request.onerror = function () { finish('打开失败：' + (request.error ? request.error.name : '未知错误')); };
+            request.onblocked = function () { finish('打开被阻止'); };
+            request.onsuccess = function () {
+              db = request.result;
+              if (finished) { db.close(); return; }
+              try {
+                var transaction = db.transaction('probe', 'readwrite');
+                var store = transaction.objectStore('probe');
+                var value = 'cpm-idb-ok';
+                var readBack = false;
+                var write = store.put(value, 'key');
+                write.onsuccess = function () {
+                  var read = store.get('key');
+                  read.onsuccess = function () { readBack = read.result === value; };
+                };
+                transaction.oncomplete = function () { finish(readBack ? '支持（写入并读回成功）' : '读回数据不一致'); };
+                transaction.onerror = function () { finish('读写失败：' + (transaction.error ? transaction.error.name : '未知错误')); };
+                transaction.onabort = function () { finish('读写事务中止'); };
+              } catch (error) { finish('读写失败：' + error.message); }
+            };
+          } catch (error) { finish('调用失败：' + error.message); }
+        }
+        checkIndexedDb();
+
+        var inputToggle = document.getElementById('input-toggle');
+        var inputTarget = document.getElementById('input-target');
+        var gamepadResult = document.getElementById('gamepad-result');
+        var eventResult = document.getElementById('event-result');
+        var inputTimer = null;
+        var inputTimeout = null;
+        var inputActive = false;
+        var lastPadText = '';
+        var eventLines = [];
+        var pendingKeyEvents = [];
+        function logEvent(message) {
+          eventLines.unshift(new Date().toLocaleTimeString() + ' ' + message);
+          if (eventLines.length > 12) eventLines.pop();
+          eventResult.textContent = eventLines.join('\n');
+        }
+        function readGamepads() {
+          var lines = [];
+          try {
+            var pads = getGamepads.call(navigator) || [];
+            for (var i = 0; i < pads.length; i++) {
+              var pad = pads[i];
+              if (!pad || pad.connected === false) continue;
+              var pressed = [];
+              var axes = [];
+              for (var b = 0; b < pad.buttons.length; b++) {
+                var button = pad.buttons[b];
+                if (typeof button === 'number' ? button > 0.5 : button && (button.pressed || button.value > 0.5)) pressed.push(b);
+              }
+              for (var a = 0; a < pad.axes.length; a++) {
+                if (Math.abs(pad.axes[a]) > 0.5) axes.push(a + '=' + pad.axes[a].toFixed(2));
+              }
+              lines.push('手柄 ' + i + '：' + (pad.id || '未知设备') + '\n映射：' + (pad.mapping || '未提供') + '\n按下的按钮：' + (pressed.length ? pressed.join(', ') : '无') + '\n活动的摇杆轴：' + (axes.length ? axes.join(', ') : '无'));
+            }
+            if (!lines.length) lines.push('尚未检测到手柄。按一个手柄按钮后再观察。');
+          } catch (error) { lines.push('读取手柄失败：' + error.message); }
+          var next = lines.join('\n\n');
+          if (next !== lastPadText) {
+            gamepadResult.textContent = next;
+            lastPadText = next;
+          }
+        }
+        function stopInputTest() {
+          inputActive = false;
+          clearInterval(inputTimer);
+          clearTimeout(inputTimeout);
+          inputTimer = null;
+          inputToggle.textContent = '重新测试';
+          logEvent('测试已停止');
+        }
+        function onKey(event) {
+          if (!inputActive) return;
+          var tracked = { event: event, bubbled: false };
+          pendingKeyEvents.push(tracked);
+          var cancelable = event.cancelable;
+          if (cancelable) event.preventDefault();
+          event.stopPropagation();
+          logEvent(event.type + ' key=' + (event.key || '?') + ' code=' + (event.code || '?') + '；可取消=' + cancelable + '；默认已阻止=' + event.defaultPrevented + '；已调用 stopPropagation');
+          setTimeout(function () {
+            logEvent(event.type + ' 到达 document 冒泡阶段：' + (tracked.bubbled ? '是（未阻止）' : '否（已阻止）'));
+            pendingKeyEvents.splice(pendingKeyEvents.indexOf(tracked), 1);
+          }, 0);
+        }
+        function onKeyBubble(event) {
+          for (var i = 0; i < pendingKeyEvents.length; i++) {
+            if (pendingKeyEvents[i].event === event) pendingKeyEvents[i].bubbled = true;
+          }
+        }
+        function onTargetInput(event) {
+          if (!inputActive) return;
+          var cancelable = event.cancelable;
+          if (cancelable) event.preventDefault();
+          event.stopPropagation();
+          logEvent(event.type + '（测试区域）；可取消=' + cancelable + '；默认已阻止=' + event.defaultPrevented + '；已调用 stopPropagation');
+        }
+        window.addEventListener('keydown', onKey, true);
+        window.addEventListener('keyup', onKey, true);
+        document.addEventListener('keydown', onKeyBubble);
+        document.addEventListener('keyup', onKeyBubble);
+        inputTarget.addEventListener('pointerdown', onTargetInput);
+        inputTarget.addEventListener('pointerup', onTargetInput);
+        inputTarget.addEventListener('click', onTargetInput);
+        inputToggle.onclick = function () {
+          if (inputActive) { stopInputTest(); return; }
+          inputActive = true;
+          eventLines = [];
+          lastPadText = '';
+          inputToggle.textContent = '停止测试';
+          inputTarget.focus();
+          logEvent('测试已启动，请按返回键和确认键');
+          if (typeof getGamepads === 'function') {
+            readGamepads();
+            inputTimer = setInterval(readGamepads, 120);
+          } else gamepadResult.textContent = 'Gamepad API 不可调用';
+          inputTimeout = setTimeout(stopInputTest, 20000);
+        };
+        if (typeof window.Worker !== 'function') {
+          finishWorkerCheck(null, null, '不支持', '未检测');
+          return;
+        }
+        try {
+          var worker = new Worker('browser-check-worker.js');
+          var timer = setTimeout(function () {
+            finishWorkerCheck(worker, timer, '超时（10 秒内未收到消息）', '未检测');
+          }, 10000);
+          worker.onmessage = function (event) {
+            finishWorkerCheck(worker, timer, '支持（已创建并通信）', event.data && event.data.fetch ? '支持' : '不支持');
+          };
+          worker.onerror = function () {
+            finishWorkerCheck(worker, timer, '加载或运行失败', '未检测');
+          };
+          worker.postMessage('check');
+        } catch (error) {
+          finishWorkerCheck(null, null, '创建失败：' + error.message, '未检测');
+        }
       }());
     </script>
   </body>

@@ -1,4 +1,5 @@
 import { PkgListClickAction } from 'common/types/configStore'
+import { memo } from 'react'
 import type { FileStat } from '@/types'
 import { Button, Empty, Spin } from '@/design-system'
 import { formatFileSize, formatPkgName } from '@/utils'
@@ -6,11 +7,17 @@ import { GameActions } from './GameActions'
 export type TableListProps = {
   handleInstallByActionType: (file: FileStat, action: PkgListClickAction) => void
   displayPkgRawTitle?: boolean
+  clickAction?: PkgListClickAction
   loading?: boolean
   data: FileStat[]
 }
-export function TableList({ data, loading, displayPkgRawTitle, handleInstallByActionType }: TableListProps) {
-  if (loading) return <Spin />
+export const TableList = memo(function TableList({
+  data,
+  loading,
+  displayPkgRawTitle,
+  handleInstallByActionType,
+}: TableListProps) {
+  if (loading) return <Spin tip="正在读取游戏库目录…" />
   if (!data.length) return <Empty description="没有找到符合条件的游戏" />
   return (
     <div className="file-table-wrap">
@@ -40,4 +47,4 @@ export function TableList({ data, loading, displayPkgRawTitle, handleInstallByAc
       </table>
     </div>
   )
-}
+})

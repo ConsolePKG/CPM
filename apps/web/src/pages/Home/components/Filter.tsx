@@ -1,6 +1,6 @@
 import { Slider } from '@base-ui/react/slider'
-import { ArrowLeft, RefreshCw, Search, Sliders, X } from 'react-feather'
-import { useRef, useState } from 'react'
+import { ArrowLeft, RefreshCw, Search, ChevronDown } from 'react-feather'
+import { useState } from 'react'
 import { PkgListUIType } from 'common/types/configStore'
 import { Button, IconButton, Input, Popover, SegmentedControl, Select } from '@/design-system'
 import { useContainer } from '@/store/container'
@@ -27,27 +27,33 @@ export function Filter({
     searchKeyWord,
     setSearchKeyWord,
     curHost,
+    fileServerHosts,
+    curFileServerHostId,
+    setCurFileServerHostId,
     paths,
     setPaths,
     loading,
     pkgInfoDataLoading,
     getServerFileListData,
   } = fileServer
-  const [searchOpen, setSearchOpen] = useState(Boolean(searchKeyWord))
   const [filterOpen, setFilterOpen] = useState(false)
-  const searchRef = useRef<HTMLInputElement>(null)
   return (
     <div className="library-toolbar">
       <div className="library-toolbar-left">
         <Popover
           title="筛选与显示"
-          hover
           open={filterOpen}
           onOpenChange={setFilterOpen}
           trigger={
-            <IconButton label="筛选游戏" className={category !== 'all' ? 'filter-active' : ''}>
-              <Sliders />
-            </IconButton>
+            <Button
+              variant="text"
+              className={`library-category ${category !== 'all' ? 'filter-active' : ''}`}
+              aria-label="筛选与显示"
+            >
+              <span>{{ all: '全部游戏', base: '游戏本体', patch: '补丁', addon: 'DLC' }[category]}</span>
+              <span className="library-count">{count}</span>
+              <ChevronDown size={16} />
+            </Button>
           }
         >
           <div className="library-filters">
@@ -107,23 +113,55 @@ export function Filter({
             </div>
           </div>
         </Popover>
-        <h1>全部游戏</h1>
-        <span className="library-count">{count}</span>
         <nav className="library-path" aria-label="资源路径">
           {paths.length > 1 && (
             <IconButton label="上一级文件夹" variant="text" onClick={() => setPaths(paths.slice(0, -1))}>
               <ArrowLeft />
             </IconButton>
           )}
-          <Button variant="text" onClick={() => setPaths([])}>
-            {curHost?.alias || '资源'}
-          </Button>
+          {fileServerHosts.length > 1 ? (
+            <Select
+              label="资源库"
+              value={curFileServerHostId || ''}
+              onChange={(id) => {
+                setPaths([])
+                setCurFileServerHostId(id)
+              }}
+              options={fileServerHosts.map((host) => ({ value: host.id, label: host.alias || host.url }))}
+            />
+          ) : (
+            <Button variant="text" onClick={() => setPaths([])}>
+              {curHost?.alias || '资源'}
+            </Button>
+          )}
           {paths.filter(Boolean).map((path, index) => (
             <span key={index}> / {path}</span>
           ))}
         </nav>
       </div>
       <div className="library-toolbar-right">
+        <div className="library-search">
+          <Input
+            aria-label="搜索游戏"
+            placeholder="搜索游戏…"
+            prefix={<Search size={16} />}
+            value={searchKeyWord}
+            onChange={setSearchKeyWord}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') setSearchKeyWord('')
+            }}
+          />
+        </div>
+        <Select
+          label="排序方式"
+          value={sort}
+          onChange={setSort}
+          options={[
+            { value: 'name', label: '名称' },
+            { value: 'recent', label: '最近修改' },
+            { value: 'size', label: '文件大小' },
+          ]}
+        />
         <IconButton
           label="刷新游戏库"
           variant="text"
@@ -132,43 +170,6 @@ export function Filter({
         >
           <RefreshCw />
         </IconButton>
-        <Select
-          label="排序方式"
-          value={sort}
-          onChange={setSort}
-          options={[
-            { value: 'name', label: '名称排序' },
-            { value: 'recent', label: '最近修改' },
-            { value: 'size', label: '文件大小' },
-          ]}
-        />
-        <div className="library-search">
-          {searchOpen && (
-            <Input
-              ref={searchRef}
-              aria-label="搜索游戏"
-              placeholder="搜索游戏…"
-              autoFocus
-              value={searchKeyWord}
-              onChange={setSearchKeyWord}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  setSearchKeyWord('')
-                  setSearchOpen(false)
-                }
-              }}
-            />
-          )}
-          <IconButton
-            label={searchOpen ? '收起搜索' : '搜索游戏'}
-            onClick={() => {
-              setSearchOpen(!searchOpen)
-              if (searchOpen) setSearchKeyWord('')
-            }}
-          >
-            {searchOpen ? <X /> : <Search />}
-          </IconButton>
-        </div>
       </div>
     </div>
   )

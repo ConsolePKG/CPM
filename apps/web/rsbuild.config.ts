@@ -17,10 +17,7 @@ export default defineConfigWithPreset({
     // chaining). Transpile them for old WebKit, excluding the polyfill runtime.
     include: [
       {
-        and: [
-          /[\\/]node_modules[\\/]/,
-          { not: /[\\/]node_modules[\\/](?:core-js|@swc[\\/]helpers)[\\/]/ },
-        ],
+        and: [/[\\/]node_modules[\\/]/, { not: /[\\/]node_modules[\\/](?:core-js|@swc[\\/]helpers)[\\/]/ }],
       },
     ],
     define: {
@@ -37,7 +34,9 @@ export default defineConfigWithPreset({
     // PS4 reports WebKit 605; keep generated syntax compatible with Safari 11.1.
     overrideBrowserslist: ['chrome >= 107', 'edge >= 107', 'firefox >= 104', 'safari >= 11.1'],
     polyfill: 'entry',
-    assetPrefix: './',
+    // Worker entries live under js-async while their shared chunks live under static/js.
+    // Let each runtime resolve assets from its script URL (also works with Electron file://).
+    assetPrefix: 'auto',
     sourceMap: true,
   },
   html: {

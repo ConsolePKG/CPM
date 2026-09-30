@@ -6,6 +6,8 @@ import { createClient, WebDAVClient } from 'webdav/web'
 
 import { FileServerHost, FileServerType, FileStat } from '@/types'
 import { getInitConfigFromStore, sortServerFiles, updateConfigStore } from '@/utils'
+import { isPlayStationBrowser } from '@/utils/browser'
+import { recordLibraryDiagnostics } from '@/utils/libraryDiagnostics'
 
 import { useWebDavPkgInfo } from './useWebDavPkgInfo'
 
@@ -45,7 +47,7 @@ export const useFileServer = ({
   const [searchKeyWord, setSearchKeyWord] = useState('')
   const [paths, setPaths] = useState<string[]>([])
 
-  const { pkgInfoData, pkgInfoDataLoading, getWebDavPkgFileInfo } = useWebDavPkgInfo({ setFileServerFiles })
+  const { getCachedPkgInfo, pkgInfoDataLoading, getWebDavPkgFileInfo } = useWebDavPkgInfo({ setFileServerFiles })
 
   const [pending, setPending] = useState(false)
   const activationPending = useRef(false)
@@ -88,11 +90,6 @@ export const useFileServer = ({
       )) as FileStat[]
       if (res.length) {
         res.map((item) => {
-          const curPkgData = pkgInfoData.find((cache) => cache.name === item.basename)
-          if (curPkgData) {
-            item.icon0 = curPkgData.icon0
-            item.paramSfo = curPkgData.paramSfo
-          }
           item.downloadUrl = item.type === 'file' ? webDavClient.getFileDownloadLink(item.filename) : ''
           if (curHost.options?.username && curHost.options?.password) {
             item.downloadUrl = item.downloadUrl.replace(
@@ -102,6 +99,11 @@ export const useFileServer = ({
           }
           if (forceWebDavDownloadLinkToHttp && item.downloadUrl.startsWith('https://')) {
             item.downloadUrl = item.downloadUrl.replace('https://', 'http://')
+          }
+          const curPkgData = getCachedPkgInfo(item.downloadUrl)
+          if (curPkgData) {
+            item.icon0 = curPkgData.icon0
+            item.paramSfo = curPkgData.paramSfo
           }
         })
       }
@@ -127,17 +129,42 @@ export const useFileServer = ({
     if (!curHost) {
       return
     }
+    const startedAt = performance.now()
+    if (isPlayStationBrowser) {
+      recordLibraryDiagnostics({
+        hostType: curHost.type,
+        listingState: 'loading',
+        listingMs: 0,
+        fileCount: 0,
+        readerMode: curHost.type === FileServerType.WebDAV ? 'waiting' : 'server',
+        readerReason: '',
+      })
+    }
     try {
       setLoading(true)
       const res = await getFilesApi(curHost, webDavClient?.current, newPath)
       if (!didCancel) {
+        if (isPlayStationBrowser) {
+          recordLibraryDiagnostics({
+            listingState: 'complete',
+            listingMs: Math.round(performance.now() - startedAt),
+            fileCount: res.length,
+          })
+        }
         if (curHost.type === FileServerType.WebDAV) {
-          getWebDavPkgFileInfo(res.filter((item) => !item.icon0 && item.downloadUrl))
+          const needsParsing = res.filter((item) => !item.icon0 && item.downloadUrl)
+          if (isPlayStationBrowser && !needsParsing.length) {
+            recordLibraryDiagnostics({ readerMode: 'not-needed' })
+          }
+          getWebDavPkgFileInfo(needsParsing)
         }
         setFileServerFiles(res || [])
       }
     } catch (err) {
       if (!didCancel) {
+        if (isPlayStationBrowser) {
+          recordLibraryDiagnostics({ listingState: 'error', listingMs: Math.round(performance.now() - startedAt) })
+        }
         if (err instanceof Error) {
           Notification.error({
             title: 'Get file server files error',

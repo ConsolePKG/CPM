@@ -5,6 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>CPM</title>
     <script>
+      (function () {
+        if (location.protocol === 'file:') return;
+        // BrowserRouter can open nested paths directly; generated asset URLs are relative.
+        var base = document.createElement('base');
+        base.href = '/';
+        document.head.appendChild(base);
+        // Keep links made by older hash-router builds usable.
+        if (location.hash.slice(0, 2) === '#/') {
+          history.replaceState(history.state, '', location.hash.slice(1));
+        }
+      }());
+    </script>
+    <script>
       // Keep startup diagnostics readable even when the application bundle cannot parse.
       (function () {
         function showStartupError(message) {
