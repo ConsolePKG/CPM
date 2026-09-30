@@ -10,6 +10,8 @@ const bytes = readFileSync(source)
 if (!bytes.subarray(0, 4).equals(Buffer.from([0x7f, 0x45, 0x4c, 0x46]))) throw new Error('Not an ELF payload')
 const version = /#define RPI_VERSION "([^"]+)"/.exec(readFileSync(resolve(cpi, 'include/rpi/types.h'), 'utf8'))?.[1]
 if (!version) throw new Error('CPI version not found')
+if (!bytes.includes(Buffer.from(version)) || !bytes.includes(Buffer.from('/api/v1/capabilities')))
+  throw new Error('Payload does not contain the current CPI version and v1 protocol; rebuild it before syncing')
 const target = resolve(root, 'apps/web/public/cpi')
 mkdirSync(target, { recursive: true })
 copyFileSync(source, resolve(target, filename))
@@ -18,6 +20,7 @@ writeFileSync(
   JSON.stringify(
     {
       version,
+      protocolVersion: 1,
       filename,
       size: bytes.length,
       sha256: createHash('sha256').update(bytes).digest('hex'),

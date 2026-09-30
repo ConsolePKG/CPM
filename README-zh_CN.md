@@ -1,5 +1,11 @@
 # PS4RPS
 
+## ConsolePKG 资源库与安装 job
+
+当前源码支持浏览器/Node 共享资源库内核、IndexedDB/SQLite 异步索引、只读分享和 NAS Docker 服务。
+新安装流程使用主机权威的 `/api/v1/jobs`，需要 CPI 2.07 源码对应的 payload；旧外部静态服务器需升级或改为 WebDAV。
+原生完成信号及新的 PS5 job 行为仍须真机验证。部署前请阅读[部署、迁移、分享与恢复说明](docs/library-jobs.md)。
+
 [![GitHub release (latest by date including pre-releases](https://img.shields.io/github/v/release/njzydark/PS4RPS?include_prereleases)](https://github.com/njzydark/PS4RPS/releases/latest)
 [![Build/release](https://github.com/njzydark/PS4RPS/actions/workflows/build.yaml/badge.svg)](https://github.com/njzydark/PS4RPS/actions/workflows/build.yaml)
 [![GitHub](https://img.shields.io/github/license/njzydark/PS4RPS)](https://github.com/njzydark/PS4RPS/blob/master/LICENSE)

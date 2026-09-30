@@ -7,6 +7,14 @@
 
 Yet another remote pkg sender for PS4
 
+## ConsolePKG library and job protocol
+
+The current source introduces portable browser/Node libraries, SQLite/IndexedDB indexing,
+read-only library sharing, a NAS Docker service and console-authoritative installation jobs.
+The new installer requires CPI's `/api/v1/jobs` protocol (2.07 source); older external static
+servers need migration. Native completion and new PS5 job behavior remain hardware verification gates.
+See [deployment, migration, sharing and recovery](docs/library-jobs.md) before upgrading.
+
 ![PS4RPS.png](assets/PS4RPS.png)
 
 English | [简体中文](./README-zh_CN.md)
@@ -129,8 +137,7 @@ until their native behavior is verified. Rebuild and sync the PS5 ELF with
 on the configurable Payload Server port (default 9090), followed by POST `/` with
 the raw ELF ArrayBuffer. Reference: [hippie68's browser sender](https://github.com/hippie68/hippie68.github.io/blob/master/900/index.html).
 It verifies the bundled hash and loader readiness before requesting CPI shutdown,
-waits for API/manifest listeners to disappear, sends once, then checks CPI on port
-12801. Failed or uncertain sends are never automatically repeated. This updates both the running payload and `/data/payloads/rpi-payload-ps4.elf`.
+waits for API/manifest listeners to disappear, sends once, then checks CPI on port 12801. Failed or uncertain sends are never automatically repeated. This updates both the running payload and `/data/payloads/rpi-payload-ps4.elf`.
 When current CPI advertises `payload_update`, CPM uploads to `/api/payload` and
 verifies the readback hash before shutdown. For older CPI that supports shutdown
 but lacks this capability, CPM first loads the new bundled CPI, then uploads and

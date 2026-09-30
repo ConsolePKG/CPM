@@ -1,6 +1,7 @@
 {
-  "version": "2.06",
+  "version": "2.07",
+  "protocolVersion": 1,
   "filename": "rpi-payload-ps4.elf",
-  "size": 444064,
-  "sha256": "98891b7cde3c03ef1b92f7d471c52dd78ae1e25134935839910154e3fa6beab0"
+  "size": 476832,
+  "sha256": "e5f3ed1acd934af7492f40d1939ff5ae211d614f1036de4323a86c7a314c8eee"
 }
