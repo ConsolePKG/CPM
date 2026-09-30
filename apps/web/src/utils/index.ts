@@ -94,7 +94,7 @@ export const formatPkgName = (record?: FileStat, displayPkgRawTitle = false) => 
       .pop()
       ?.replace(/\.pkg$/i, '') || record.basename.replace(/\.pkg$/i, '')
   if (displayPkgRawTitle) {
-    return record.paramSfo?.TITLE || formattedName
+    return record.resourceMetadata?.title || record.paramSfo?.TITLE || formattedName
   }
   return formattedName
 }

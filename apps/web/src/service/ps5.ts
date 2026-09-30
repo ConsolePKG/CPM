@@ -46,8 +46,6 @@ export async function uploadPS5Icon(host: string, contentId: string, source: str
   const magic = new Uint8Array(bytes, 0, Math.min(bytes.byteLength, 8))
   if (bytes.byteLength < 8 || bytes.byteLength > 2 * 1024 * 1024 || magic.join(',') !== '137,80,78,71,13,10,26,10')
     throw new Error('包封面不是有效 PNG')
-  if (window.electron?.servePS5Icon)
-    return window.electron.servePS5Icon({ host: new URL(host).hostname, bytes: new Uint8Array(bytes) })
   const target = `${host}/api/icon/${encodeURIComponent(contentId)}`
   await axios.post(target, bytes, { headers: { 'Content-Type': 'image/png' }, timeout: 15000 })
   return target

@@ -1,6 +1,7 @@
 import { RouteSurface } from '@/components/RouteSurface'
 import { AppHeader } from '@/components/shell/AppHeader'
 import { throwIfAborted } from '@/utils/abort'
+import { libraryResource } from '@/library/runtime'
 import { isPlayStationBrowser } from '@/utils/browser'
 import { Tabs } from '@base-ui/react/tabs'
 import { Dialog } from '@base-ui/react/dialog'
@@ -80,10 +81,12 @@ export function GameDetailPage({ data, hasBackground }: { data?: FileStat; hasBa
     const load = async () => {
       const entries = await loadPkgResource(data, 'artwork', controller.signal)
       const entry = entries.find((item) => /(^|[\\/])pic1\.png$/i.test(item.name))
-      if (!entry || !data.downloadUrl) return
+      if (!entry || (!data.downloadUrl && !data.resourceId)) return
       const { getPs4PkgArtworkImage } = await import('@njzy/ps4-pkg-info/web')
       throwIfAborted(controller.signal)
-      const result = await getPs4PkgArtworkImage(data.downloadUrl, entry.id, { signal: controller.signal })
+      const result: Awaited<ReturnType<typeof getPs4PkgArtworkImage>> = data.resourceId
+        ? ((await libraryResource(data, 'artwork-image', String(entry.id))) as any)
+        : await getPs4PkgArtworkImage(data.downloadUrl!, entry.id, { signal: controller.signal })
       if (result.status !== 'ready' || !result.data.preview) return
       const image = new Image()
       await new Promise<void>((resolve, reject) => {

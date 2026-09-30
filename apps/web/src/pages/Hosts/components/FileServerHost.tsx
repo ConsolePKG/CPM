@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Edit2, Plus, Trash2 } from 'react-feather'
-import { Button, ConfirmDialog, Empty, IconButton } from '@/design-system'
+import { Button, ConfirmDialog, Empty, IconButton, Notification } from '@/design-system'
+import { shareLibrary, listLibraryShares } from '@/library/runtime'
 import { ConfigCard } from '@/components/ConfigCard'
 import { useContainer } from '@/store/container'
 import { FileServerType, type FileServerHost as Host } from '@/types'
@@ -14,6 +15,18 @@ export function FileServerHost() {
     if (params.get('add') === 'true' || params.get('openFileServerHost') === 'true') open()
   }, [params, open])
   const [deleting, setDeleting] = useState<Host>()
+  const [shareLink, setShareLink] = useState('')
+  const [shares, setShares] = useState<{ id: string; revoked: boolean }[]>([])
+  const [shareHost, setShareHost] = useState<Host>()
+  const manageShares = async (host: Host) => {
+    try {
+      const result = await listLibraryShares(host)
+      setShareHost(host)
+      setShares(result.shares)
+    } catch (error) {
+      Notification.error((error as Error).message)
+    }
+  }
   const {
     fileServer: {
       fileServerHosts,
@@ -29,9 +42,9 @@ export function FileServerHost() {
   return (
     <section className="hosts-section">
       <div className="hosts-heading">
-        <p>WebDAV 或静态文件服务器中的游戏资源。</p>
+        <p>自己的文件夹/WebDAV 库，或别人分享的只读资源库。</p>
         <Button type="primary" icon={<Plus />} disabled={pending} onClick={() => open()}>
-          添加服务器
+          添加资源库
         </Button>
       </div>
       <div className="hosts-cards">
@@ -39,12 +52,45 @@ export function FileServerHost() {
           <ConfigCard
             key={host.id}
             title={host.alias || host.url || '本地文件夹'}
-            subTitle={host.type === FileServerType.WebDAV ? 'WebDAV' : '静态文件服务器'}
+            subTitle={
+              host.type === FileServerType.WebDAV
+                ? '浏览器 WebDAV 库'
+                : host.type === FileServerType.BrowserFiles
+                  ? '浏览器文件夹库'
+                  : '资源库服务'
+            }
             meta={host.type === FileServerType.WebDAV ? host.url : host.directoryPath || host.url}
             isActive={host.id === curFileServerHostId}
             onClick={() => void activate(host)}
             action={
               <>
+                {(host.type === FileServerType.LibraryService || host.type === FileServerType.StaticFileServer) && (
+                  <Button
+                    variant="text"
+                    onClick={() => {
+                      void shareLibrary(host).then(
+                        (share) => {
+                          setShareLink(share.url)
+                          void manageShares(host)
+                        },
+                        (error) => Notification.error(error.message),
+                      )
+                    }}
+                  >
+                    创建只读分享
+                  </Button>
+                )}
+                {(host.type === FileServerType.LibraryService || host.type === FileServerType.StaticFileServer) && (
+                  <Button
+                    variant="text"
+                    onClick={() => {
+                      setShareLink('')
+                      void manageShares(host)
+                    }}
+                  >
+                    管理分享
+                  </Button>
+                )}
                 <IconButton
                   label={`编辑 ${host.alias || host.url}`}
                   variant="text"
@@ -66,10 +112,37 @@ export function FileServerHost() {
           />
         ))}
       </div>
-      {!fileServerHosts.length && <Empty description="添加文件服务器，开始浏览游戏库。" />}
+      {!fileServerHosts.length && <Empty description="创建或连接资源库，开始浏览游戏。" />}
+      {shareLink && (
+        <p>
+          分享链接（持有者可浏览和下载）：
+          <input aria-label="分享链接" readOnly value={shareLink} onFocus={(event) => event.currentTarget.select()} />
+        </p>
+      )}
+      {shareHost &&
+        shares
+          .filter((share) => !share.revoked)
+          .map((share) => (
+            <p key={share.id}>
+              {share.id}{' '}
+              <Button
+                variant="text"
+                onClick={() => {
+                  void listLibraryShares(shareHost)
+                    .then(async ({ client }) => {
+                      await client.revokeShare(share.id)
+                      await manageShares(shareHost)
+                    })
+                    .catch((error) => Notification.error(error.message))
+                }}
+              >
+                撤销分享
+              </Button>
+            </p>
+          ))}
       <ConfirmDialog
         visible={Boolean(deleting)}
-        title="删除文件服务器配置？"
+        title="删除资源库连接？"
         description="只移除保存的连接配置，不会删除服务器上的文件。"
         onCancel={() => setDeleting(undefined)}
         onConfirm={() => {

@@ -18,7 +18,17 @@ export function HostFormDialogs() {
     if (!host) return undefined
     return host.type === FileServerType.WebDAV
       ? { ...host, username: host.options?.username, password: host.options?.password }
-      : { ...host, iface: host.preferredInterface }
+      : {
+          ...host,
+          iface: host.preferredInterface,
+          token: host.token,
+          createService: !!host.provision,
+          sourceType: host.provision?.type as 'folder' | 'webdav' | undefined,
+          sourceRoot: host.provision?.root,
+          sourceUrl: host.provision?.url,
+          username: host.provision?.username,
+          password: host.provision?.password,
+        }
   }, [server.host])
   const savePS4 = (value: PS4FormData) => {
     const host: PS4Host = { ...value, id: value.id! }
@@ -28,17 +38,40 @@ export function HostFormDialogs() {
     setCurSelectPs4HostId(host.id)
   }
   const saveServer = (value: FileServerFormData) => {
-    const common = { id: value.id!, alias: value.alias, url: value.url, recursiveQuery: value.recursiveQuery }
+    const common = {
+      id: value.id!,
+      alias: value.alias,
+      url: value.url,
+      recursiveQuery: value.recursiveQuery,
+      libraryId: value.libraryId,
+    }
     const host: FileServerHost =
       value.type === FileServerType.WebDAV
         ? { ...common, type: value.type, options: { username: value.username, password: value.password } }
-        : {
-            ...common,
-            type: value.type,
-            directoryPath: value.directoryPath || '',
-            port: value.port || 1090,
-            preferredInterface: value.iface,
-          }
+        : value.type === FileServerType.LibraryService || value.type === FileServerType.BrowserFiles
+          ? {
+              ...common,
+              type: value.type,
+              token: value.token,
+              provision: value.createService
+                ? {
+                    id: value.id!,
+                    name: value.alias || 'Games',
+                    type: value.sourceType || 'folder',
+                    root: value.sourceRoot,
+                    url: value.sourceUrl,
+                    username: value.username,
+                    password: value.password,
+                  }
+                : undefined,
+            }
+          : {
+              ...common,
+              type: value.type,
+              directoryPath: value.directoryPath || '',
+              port: value.port || 1090,
+              preferredInterface: value.iface,
+            }
     const exists = fileServerHosts.some((item) => item.id === host.id)
     setFileServerHosts((old) => (exists ? old.map((item) => (item.id === host.id ? host : item)) : [...old, host]))
     if (!exists || host.id === curFileServerHostId) void activate(host)

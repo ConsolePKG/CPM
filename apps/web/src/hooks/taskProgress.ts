@@ -1,6 +1,15 @@
 import type { InstallTask } from '@/types'
-export const taskKey = (task: Pick<InstallTask, 'taskId' | 'contentId' | 'ps4HostUrl'>) =>
-  `${task.ps4HostUrl}#${task.contentId || task.taskId}`
+export const taskKey = (
+  task: Pick<InstallTask, 'taskId' | 'contentId' | 'ps4HostUrl' | 'hostId' | 'jobId' | 'idempotencyKey'>,
+) => `${task.hostId || task.ps4HostUrl}#${task.jobId || task.idempotencyKey || task.contentId || task.taskId}`
+export function canControlJob(task: InstallTask, action: 'pause' | 'resume' | 'cancel' | 'retry') {
+  if (!task.jobId || task.offline || !task.capabilities?.[action]) return false
+  if (action === 'retry') return ['failed', 'cancelled', 'completed'].includes(task.jobState || '')
+  if (action === 'resume') return task.jobState === 'paused'
+  return ['accepted', 'transferring', 'installing', ...(action === 'cancel' ? ['paused'] : [])].includes(
+    task.jobState || '',
+  )
+}
 export function sampleTransfer(
   previous: Pick<InstallTask, 'sampleTime' | 'sampleTransferred' | 'speedHistory'>,
   transferred: number,

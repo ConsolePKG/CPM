@@ -2,6 +2,8 @@ import { ContextMenu } from '@base-ui/react/context-menu'
 import { PkgListClickAction } from 'common/types/configStore'
 import type { ReactElement } from 'react'
 import type { FileStat } from '@/types'
+import { retryLibraryFile } from '@/library/runtime'
+import { Notification } from '@/components/ui'
 export function GameActions({
   file,
   onAction,
@@ -21,9 +23,23 @@ export function GameActions({
             <ContextMenu.Item className="cpm-option" onClick={() => onAction(file, PkgListClickAction.detail)}>
               查看详情
             </ContextMenu.Item>
-            <ContextMenu.Item className="cpm-option" onClick={() => onAction(file, PkgListClickAction.install)}>
+            <ContextMenu.Item
+              className="cpm-option"
+              disabled={!!file.resourceId && !['ready', 'partial'].includes(file.parseState || '')}
+              onClick={() => onAction(file, PkgListClickAction.install)}
+            >
               安装游戏
             </ContextMenu.Item>
+            {file.resourceId && file.parseState === 'failed' && (
+              <ContextMenu.Item
+                className="cpm-option"
+                onClick={() => {
+                  void retryLibraryFile(file).catch((error) => Notification.error(error.message))
+                }}
+              >
+                重试解析
+              </ContextMenu.Item>
+            )}
           </ContextMenu.Popup>
         </ContextMenu.Positioner>
       </ContextMenu.Portal>

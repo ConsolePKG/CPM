@@ -1,10 +1,19 @@
 import { throwIfAborted } from '@/utils/abort'
 import type { Artwork, Resource, TrophySet } from '@njzy/ps4-pkg-info/web'
 import type { FileStat } from '@/types'
+import { libraryResource } from '@/library/runtime'
 export type ResourceKind = 'artwork' | 'trophies'
 export type PkgResources = { artwork: Artwork; trophies: Resource<TrophySet> }
 export const resourceKey = (file: FileStat) =>
-  JSON.stringify([file.downloadUrl, file.filename, file.size, file.etag, file.lastmod])
+  JSON.stringify([
+    file.libraryConnectionId,
+    file.resourceId,
+    file.downloadUrl,
+    file.filename,
+    file.size,
+    file.etag,
+    file.lastmod,
+  ])
 // Small LRU, bounded by both entry count and encoded resource bytes. Never cache failures.
 const cache = new Map<string, { value: PkgResources[ResourceKind]; size: number }>()
 let cacheSize = 0
@@ -21,6 +30,8 @@ export async function loadPkgResource<K extends ResourceKind>(
     cache.set(key, hit)
     return hit.value as PkgResources[K]
   }
+  if (file.resourceId)
+    return (await libraryResource(file, kind, kind === 'trophies' ? language : undefined)) as PkgResources[K]
   if (!file.downloadUrl) throw new Error('缺少 PKG 下载地址，无法读取资源')
   const pkg = await import('@njzy/ps4-pkg-info/web')
   throwIfAborted(signal)

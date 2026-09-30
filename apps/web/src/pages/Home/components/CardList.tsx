@@ -5,6 +5,7 @@ import { formatFileSize, formatPkgName } from '@/utils'
 import type { TableListProps } from './TableList'
 import { GameCover } from './GameCover'
 import { GameActions } from './GameActions'
+import { useContainer } from '@/store/container'
 export const CardList = memo(function CardList({
   data,
   loading,
@@ -12,6 +13,9 @@ export const CardList = memo(function CardList({
   clickAction,
   handleInstallByActionType,
 }: TableListProps) {
+  const {
+    ps4Installer: { installTasks },
+  } = useContainer()
   if (loading) return <Spin tip="正在读取游戏库目录…" />
   if (!data.length) return <Empty description="没有找到符合条件的游戏" />
   return (
@@ -34,7 +38,40 @@ export const CardList = memo(function CardList({
               </span>
             </div>
             <strong title={formatPkgName(file, displayPkgRawTitle)}>{formatPkgName(file, displayPkgRawTitle)}</strong>
-            <small>{file.type === 'directory' ? '文件夹' : `PS4 · ${formatFileSize(file.size)}`}</small>
+            <small>
+              {file.type === 'directory'
+                ? '文件夹'
+                : `${file.resourcePlatform?.toUpperCase() || (file.resourceId ? 'UNKNOWN' : 'PS4')} · ${formatFileSize(file.size)}`}
+            </small>
+            {file.parseState && file.parseState !== 'ready' && (
+              <small title={file.parseMessage}>
+                {
+                  (
+                    {
+                      pending: '等待解析',
+                      parsing: '解析中',
+                      partial: '部分元数据',
+                      unsupported: '格式暂不支持',
+                      failed: '解析失败，可在菜单重试',
+                    } as Record<string, string>
+                  )[file.parseState]
+                }
+              </small>
+            )}
+            {installTasks
+              .filter(
+                (task) =>
+                  task.file.resourceId === file.resourceId &&
+                  !!file.resourceId &&
+                  task.file.libraryConnectionId === file.libraryConnectionId &&
+                  !['completed', 'cancelled'].includes(task.jobState || ''),
+              )
+              .map((task) => (
+                <small key={`${task.hostId}:${task.jobId || task.idempotencyKey}`}>
+                  {task.platform?.toUpperCase()} · {task.offline ? '离线' : task.jobState} ·{' '}
+                  {task.progressInfo?._percent || 0}%
+                </small>
+              ))}
           </Button>
         </GameActions>
       ))}

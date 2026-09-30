@@ -3,6 +3,7 @@ import http from 'node:http'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { advanceTransfer } from './transfer.mjs'
+import { createProtocolMock } from './protocol.mjs'
 const root = path.resolve(import.meta.dirname, '../../..')
 const seed = {
   WebAlertV1: true,
@@ -11,7 +12,8 @@ const seed = {
     {
       id: 'fixture-source',
       alias: 'NAS / PS4',
-      type: 'StaticFileServer',
+      type: 'LibraryService',
+      token: 'fixture-admin',
       url: 'http://localhost:4181',
       recursiveQuery: true,
     },
@@ -19,16 +21,16 @@ const seed = {
   curFileServerHostId: 'fixture-source',
   ps4Hosts: [
     { id: 'fixture-console', alias: 'PS4 · 客厅', url: 'http://localhost:4181' },
-    { id: 'fixture-console-2', alias: 'PS4 · 书房', url: 'http://localhost:4182' },
+    { id: 'fixture-console-2', alias: 'PS5 · 书房', url: 'http://localhost:4182', platform: 'ps5' },
   ],
   curSelectPs4HostId: 'fixture-console',
 }
 
 function seedScript(reset = false) {
-  return `if (${reset} || localStorage.getItem('cpm-mock-version') !== '1') {
+  return `if (${reset} || localStorage.getItem('cpm-mock-version') !== '2') {
     const seed = ${JSON.stringify(seed)};
     for (const [key, value] of Object.entries(seed)) localStorage.setItem(key, key === 'cpm-theme' ? value : JSON.stringify(value));
-    localStorage.setItem('cpm-mock-version', '1');
+    localStorage.setItem('cpm-mock-version', '2');
   }`
 }
 
@@ -40,7 +42,13 @@ const files = covers.map(({ name, file: cover }, i) => ({
   size: (45 + i) * 1024 ** 3,
   lastmod: '2026-09-20T00:00:00Z',
   icon0: `http://localhost:4180/covers/${cover}?v=ps-square-1`,
-  paramSfo: { TITLE: name, TITLE_ID: `CUSA00${i}`, CATEGORY: 'gd', CONTENT_ID: 'TEST-CONTENT-' + i, APP_VER: '01.00' },
+  paramSfo: {
+    TITLE: name,
+    TITLE_ID: `CUSA${String(i).padStart(5, '0')}`,
+    CATEGORY: 'gd',
+    CONTENT_ID: `UP0001-CUSA${String(i).padStart(5, '0')}_00-ABCDEFGHIJKLMNOP`,
+    APP_VER: '01.00',
+  },
 }))
 files.push({
   ...files[1],
@@ -64,12 +72,13 @@ function json(res, body, status = 200) {
   res.end(JSON.stringify(body))
 }
 for (const port of [4180, 4181, 4182]) {
+  const protocol = createProtocolMock({ platform: port === 4182 ? 'ps5' : 'ps4', files, demo: true })
   const tasks = new Map()
   let nextId = 1
   http
     .createServer(async (req, res) => {
       res.setHeader('Access-Control-Allow-Origin', '*')
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Range')
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
       if (req.method === 'OPTIONS') {
         res.end()
@@ -77,6 +86,7 @@ for (const port of [4180, 4181, 4182]) {
       }
       const url = new URL(req.url, `http://localhost:${port}`)
       try {
+        if (await protocol.handle(req, res, `http://localhost:${port}`)) return
         if (url.pathname === '/__fixture') {
           res.setHeader('Content-Type', 'text/html; charset=utf-8')
           res.end(`<script>${seedScript(true)}location.replace('/')</script>`)
@@ -134,7 +144,11 @@ for (const port of [4180, 4181, 4182]) {
         }
         const file = url.pathname.startsWith('/covers/')
           ? path.join(import.meta.dirname, 'covers', path.basename(url.pathname))
-          : path.join(root, 'apps/web/dist', url.pathname === '/' ? 'index.html' : url.pathname)
+          : path.join(
+              root,
+              'apps/web/dist',
+              url.pathname === '/' || !path.extname(url.pathname) ? 'index.html' : url.pathname,
+            )
         const bytes = await readFile(file)
         res.setHeader('Content-Type', mime[path.extname(file)] || 'application/octet-stream')
         if (path.extname(file) === '.html') {

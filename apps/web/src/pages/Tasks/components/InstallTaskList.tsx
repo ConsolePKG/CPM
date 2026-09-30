@@ -3,7 +3,7 @@ import { Button, Empty } from '@/design-system'
 import { useContainer } from '@/store/container'
 import { TaskActionType, TaskStatus } from '@/types'
 import { formatFileSize } from '@/utils'
-import { taskKey } from '@/hooks/taskProgress'
+import { canControlJob, taskKey } from '@/hooks/taskProgress'
 import { TaskCard } from './TaskCard'
 import { SpeedChart } from './SpeedChart'
 import '../tasks.less'
@@ -13,11 +13,15 @@ export function InstallTaskList() {
   } = useContainer()
   const [busy, setBusy] = useState(false)
   const active = installTasks.filter((task) => task.status === TaskStatus.INSTALLING)
+  const pausable = active.filter((task) => canControlJob(task, 'pause'))
   const speed = active.reduce((sum, task) => sum + (task.downloadSpeed || 0), 0)
   const groups = [
     { title: '正在下载', status: TaskStatus.INSTALLING },
     { title: '已暂停', status: TaskStatus.PAUSED },
     { title: '已完成', status: TaskStatus.FINISHED },
+    { title: '待核对', status: TaskStatus.UNKNOWN },
+    { title: '失败', status: TaskStatus.FAILED },
+    { title: '已取消', status: TaskStatus.CANCELLED },
   ]
   return (
     <section className="tasks-page" aria-label="安装任务">
@@ -55,11 +59,11 @@ export function InstallTaskList() {
         </div>
         <Button
           loading={busy}
-          disabled={!active.length}
+          disabled={!pausable.length}
           onClick={async () => {
             setBusy(true)
             try {
-              await Promise.all(active.map((task) => handleChangeInstallTaskStatus(task, TaskActionType.PAUSE)))
+              await Promise.all(pausable.map((task) => handleChangeInstallTaskStatus(task, TaskActionType.PAUSE)))
             } finally {
               setBusy(false)
             }

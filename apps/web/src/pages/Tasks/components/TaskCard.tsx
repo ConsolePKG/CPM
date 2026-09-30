@@ -4,6 +4,7 @@ import { Button, IconButton, Progress, ConfirmDialog } from '@/design-system'
 import { type InstallTask, TaskActionType, TaskStatus } from '@/types'
 import { formatFileSize } from '@/utils'
 import { GameCover } from '@/pages/Home/components/GameCover'
+import { canControlJob } from '@/hooks/taskProgress'
 export function TaskCard({
   task,
   onAction,
@@ -15,21 +16,39 @@ export function TaskCard({
   const [confirmation, setConfirmation] = useState<TaskActionType>()
   const active = task.status === TaskStatus.INSTALLING
   const complete = task.status === TaskStatus.FINISHED
+  const canPause = canControlJob(task, 'pause')
+  const canResume = canControlJob(task, 'resume')
+  const canCancel = canControlJob(task, 'cancel')
   const percent = task.progressInfo?._percent || 0
   const remaining = task.progressInfo?.rest_sec
-  const status = task.cleanupPending
-    ? '待清理'
-    : task.errorMessage
-      ? '出错'
-      : active
-        ? task.platform === 'ps5'
-          ? task.nativeState === 'playable'
-            ? '可启动'
-            : task.nativeState || '安装中'
-          : '下载中'
-        : complete
-          ? '已完成'
-          : '已暂停'
+  const status = task.offline
+    ? '离线 · 保留最近状态'
+    : task.jobState
+      ? {
+          queued: '排队',
+          submitting: '提交中',
+          accepted: '已接受',
+          transferring: '传输中',
+          installing: '安装处理中',
+          completed: '已完成',
+          paused: '已暂停',
+          failed: '失败',
+          cancelled: '已取消',
+          unknown: '待核对',
+        }[task.jobState]
+      : task.cleanupPending
+        ? '待清理'
+        : task.errorMessage
+          ? '出错'
+          : active
+            ? task.platform === 'ps5'
+              ? task.nativeState === 'playable'
+                ? '可启动'
+                : task.nativeState || '安装中'
+              : '下载中'
+            : complete
+              ? '已完成'
+              : '已暂停'
   const act = async (action: TaskActionType) => {
     setBusy(true)
     try {
@@ -51,6 +70,8 @@ export function TaskCard({
         </div>
         <p className="task-host">
           {task.platform === 'ps5' ? 'PS5' : 'PS4'} · {task.ps4HostUrl}
+          {task.jobId && ` · job ${task.jobId}`}
+          {task.lastSyncedAt && ` · 同步 ${new Date(task.lastSyncedAt).toLocaleTimeString()}`}
         </p>
         <div className="task-progress-label">
           <strong>
@@ -81,24 +102,25 @@ export function TaskCard({
         )}
       </div>
       <div className="task-actions">
-        {!complete && !task.cleanupPending && task.platform !== 'ps5' && (
+        {canControlJob(task, 'retry') && (
+          <Button disabled={busy} onClick={() => act(TaskActionType.RETRY)}>
+            新建重试
+          </Button>
+        )}
+        {!complete && !task.cleanupPending && (canPause || canResume) && (
           <IconButton
-            label={active ? '暂停任务' : '继续任务'}
+            label={canPause ? '暂停任务' : '继续任务'}
             loading={busy}
-            onClick={() => act(active ? TaskActionType.PAUSE : TaskActionType.RESUME)}
+            onClick={() => act(canPause ? TaskActionType.PAUSE : TaskActionType.RESUME)}
           >
-            {active ? <Pause /> : <Play />}
+            {canPause ? <Pause /> : <Play />}
           </IconButton>
         )}
         <IconButton
-          label={
-            task.cleanupPending ? '重新查询取消结果' : complete || task.platform === 'ps5' ? '删除任务记录' : '取消下载'
-          }
+          label={task.cleanupPending ? '重新查询取消结果' : !canCancel ? '删除任务记录' : '取消下载'}
           variant="text"
           disabled={busy}
-          onClick={() =>
-            setConfirmation(complete || task.platform === 'ps5' ? TaskActionType.DELETE : TaskActionType.CANCEL)
-          }
+          onClick={() => setConfirmation(!canCancel ? TaskActionType.DELETE : TaskActionType.CANCEL)}
         >
           <Trash2 />
         </IconButton>
@@ -114,7 +136,7 @@ export function TaskCard({
         description={
           confirmation === TaskActionType.DELETE
             ? `仅移除 CPM 记录，不会清理 ${task.platform === 'ps5' ? 'PS5' : 'PS4'} 上的内容。`
-            : '取消下载。CPI 确认是全新未完成本体时会卸载并删除；补丁、DLC、重装或状态未知时保留待清理记录，不卸载已有内容。'
+            : '停止并取消原生下载，不会自动卸载已安装的本体、补丁或 DLC。'
         }
         confirmText={confirmation === TaskActionType.DELETE ? '删除记录' : '确认取消'}
         onCancel={() => setConfirmation(undefined)}

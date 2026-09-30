@@ -1,4 +1,5 @@
 import { throwIfAborted } from '@/utils/abort'
+import { libraryResource } from '@/library/runtime'
 import { useEffect, useRef, useState } from 'react'
 import type { Artwork, ArtworkEntry, ArtworkImage, Resource, TrophyLanguage } from '@njzy/ps4-pkg-info/web'
 import type { FileStat } from '@/types'
@@ -85,6 +86,8 @@ function ArtworkCard({
     import('@njzy/ps4-pkg-info/web')
       .then(async (pkg) => {
         throwIfAborted(controller.signal)
+        if (file.resourceId)
+          return libraryResource(file, 'artwork-image', String(entry.id)) as Promise<Resource<ArtworkImage>>
         if (!file.downloadUrl) throw new Error('缺少 PKG 下载地址')
         return pkg.getPs4PkgArtworkImage(file.downloadUrl, entry.id, { signal: controller.signal })
       })

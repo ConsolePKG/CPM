@@ -1,263 +1,118 @@
 import { Notification } from '@/components/ui'
-import { Ps4PkgCategory } from '@njzy/ps4-pkg-info/web'
-import axios from 'axios'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { createClient, WebDAVClient } from 'webdav/web'
-
 import { FileServerHost, FileServerType, FileStat } from '@/types'
 import { getInitConfigFromStore, sortServerFiles, updateConfigStore } from '@/utils'
-import { isPlayStationBrowser } from '@/utils/browser'
-import { recordLibraryDiagnostics } from '@/utils/libraryDiagnostics'
-
-import { useWebDavPkgInfo } from './useWebDavPkgInfo'
+import { connectLibrary, disconnectLibrary, libraryPresentation } from '@/library/runtime'
 
 export const useFileServer = ({
-  forceWebDavDownloadLinkToHttp,
   aggregationMode,
 }: {
   forceWebDavDownloadLinkToHttp?: boolean
   aggregationMode?: boolean
 }) => {
-  const webDavClient = useRef<WebDAVClient | undefined>(undefined)
-
-  const [isFileServerReady, setIsFileServerReady] = useState(true)
   const [fileServerHosts, setFileServerHosts] = useState<FileServerHost[]>(() =>
     getInitConfigFromStore('fileServerHosts', []),
   )
   const [curFileServerHostId, setCurFileServerHostId] = useState<string | undefined>(() =>
     getInitConfigFromStore('curFileServerHostId', undefined),
   )
-
-  const curHost = useMemo(() => {
-    const curHost = fileServerHosts.find((host) => host.id === curFileServerHostId)
-    if (curHost?.type === FileServerType.WebDAV) {
-      webDavClient.current = createClient(curHost.url, curHost.options)
-    }
-    return curHost
-  }, [fileServerHosts, curFileServerHostId])
-
+  const curHost = useMemo(
+    () => fileServerHosts.find((host) => host.id === curFileServerHostId),
+    [fileServerHosts, curFileServerHostId],
+  )
+  const [fileServerFiles, setFileServerFiles] = useState<FileStat[]>([])
+  const [loading, setLoading] = useState(false)
+  const [pending, setPending] = useState(false)
+  const [isFileServerReady, setIsFileServerReady] = useState(true)
+  const [searchKeyWord, setSearchKeyWord] = useState('')
+  const [paths, setPaths] = useState<string[]>([])
+  const generation = useRef(0)
+  const webDavClient = useRef(undefined)
   useEffect(() => {
     updateConfigStore('fileServerHosts', fileServerHosts)
     updateConfigStore('curFileServerHostId', curFileServerHostId)
-  }, [curFileServerHostId, fileServerHosts])
-
-  const [fileServerFiles, setFileServerFiles] = useState<FileStat[]>([])
-  const [loading, setLoading] = useState(false)
-
-  const [searchKeyWord, setSearchKeyWord] = useState('')
-  const [paths, setPaths] = useState<string[]>([])
-
-  const { getCachedPkgInfo, pkgInfoDataLoading, getWebDavPkgFileInfo } = useWebDavPkgInfo({ setFileServerFiles })
-
-  const [pending, setPending] = useState(false)
-  const activationPending = useRef(false)
+  }, [fileServerHosts, curFileServerHostId])
   const activate = async (host: FileServerHost) => {
-    if (activationPending.current) return
-    activationPending.current = true
+    if (pending) return
     setPending(true)
     setIsFileServerReady(false)
     try {
       let selected = host
+      disconnectLibrary(host.id)
       if (host.type === FileServerType.StaticFileServer && window.electron) {
         const response = await window.electron.createStaticFileServer({
           directoryPath: host.directoryPath,
           port: host.port,
           preferredInterface: host.preferredInterface,
         })
-        if (!response?.url) throw new Error(response?.errorMessage || '启动文件服务器失败')
-        selected = { ...host, url: response.url }
-        setFileServerHosts((old) => old.map((item) => (item.id === host.id ? selected : item)))
-        Notification.success({ title: '文件服务器已启动', content: response.url })
+        if (!response?.url) throw new Error(response?.errorMessage || '启动资源库失败')
+        selected = { ...host, url: response.url, token: response.token, libraryId: response.libraryId }
       }
+      const connection = await connectLibrary(selected)
+      selected = { ...selected, libraryId: connection.libraryId }
+      if (connection.sessionOnly) Notification.error('浏览器存储不可用：当前为会话资源库，关闭页面后索引不会保留')
+      setFileServerHosts((old) => old.map((item) => (item.id === selected.id ? selected : item)))
       setPaths([])
       setFileServerFiles([])
       setCurFileServerHostId(selected.id)
-    } catch (err) {
-      Notification.error({ title: '切换文件服务器失败', content: (err as Error).message })
+    } catch (error) {
+      Notification.error({ title: '连接资源库失败', content: (error as Error).message })
     } finally {
-      setIsFileServerReady(true)
-      activationPending.current = false
       setPending(false)
+      setIsFileServerReady(true)
     }
   }
-
-  const getFilesApi = async (curHost: FileServerHost, webDavClient?: WebDAVClient, path = '/') => {
-    let res: FileStat[] = []
-    if (curHost.type === FileServerType.WebDAV && webDavClient) {
-      res = (await webDavClient.getDirectoryContents(
-        path,
-        curHost.recursiveQuery ? { deep: true, glob: '**/*.pkg' } : undefined,
-      )) as FileStat[]
-      if (res.length) {
-        res.map((item) => {
-          item.downloadUrl = item.type === 'file' ? webDavClient.getFileDownloadLink(item.filename) : ''
-          if (curHost.options?.username && curHost.options?.password) {
-            item.downloadUrl = item.downloadUrl.replace(
-              /\/\/(.*)@/,
-              `//${encodeURIComponent(curHost.options.username)}:${encodeURIComponent(curHost.options.password)}@`,
-            )
-          }
-          if (forceWebDavDownloadLinkToHttp && item.downloadUrl.startsWith('https://')) {
-            item.downloadUrl = item.downloadUrl.replace('https://', 'http://')
-          }
-          const curPkgData = getCachedPkgInfo(item.downloadUrl)
-          if (curPkgData) {
-            item.icon0 = curPkgData.icon0
-            item.paramSfo = curPkgData.paramSfo
-          }
-        })
-      }
-    } else {
-      const { data } = await axios.get(
-        `${curHost?.url}/api/files?path=${encodeURI(path)}&recursiveQuery=${curHost.recursiveQuery}`,
-      )
-      res = (data || []).map((item: FileStat) => ({
-        ...item,
-        downloadUrl:
-          item.downloadUrl ||
-          (item.type === 'file'
-            ? `${curHost.url.replace(/\/$/, '')}/${item.filename.split('/').filter(Boolean).map(encodeURIComponent).join('/')}`
-            : undefined),
-      }))
-    }
-    return sortServerFiles(res)
+  const getServerFileListData = async () => {
+    if (!curHost) return
+    const connection = await connectLibrary(curHost)
+    const capabilities = await connection.client.capabilities()
+    if (capabilities.writable) await connection.client.scan(connection.libraryId)
+    setFileServerFiles(sortServerFiles(await libraryPresentation(curHost.id, !!aggregationMode)))
   }
-
-  let didCancel = false
-
-  const getServerFileListData = async (newPath = paths.join('/')) => {
-    if (!curHost) {
-      return
-    }
-    const startedAt = performance.now()
-    if (isPlayStationBrowser) {
-      recordLibraryDiagnostics({
-        hostType: curHost.type,
-        listingState: 'loading',
-        listingMs: 0,
-        fileCount: 0,
-        readerMode: curHost.type === FileServerType.WebDAV ? 'waiting' : 'server',
-        readerReason: '',
-      })
-    }
-    try {
-      setLoading(true)
-      const res = await getFilesApi(curHost, webDavClient?.current, newPath)
-      if (!didCancel) {
-        if (isPlayStationBrowser) {
-          recordLibraryDiagnostics({
-            listingState: 'complete',
-            listingMs: Math.round(performance.now() - startedAt),
-            fileCount: res.length,
-          })
-        }
-        if (curHost.type === FileServerType.WebDAV) {
-          const needsParsing = res.filter((item) => !item.icon0 && item.downloadUrl)
-          if (isPlayStationBrowser && !needsParsing.length) {
-            recordLibraryDiagnostics({ readerMode: 'not-needed' })
-          }
-          getWebDavPkgFileInfo(needsParsing)
-        }
-        setFileServerFiles(res || [])
-      }
-    } catch (err) {
-      if (!didCancel) {
-        if (isPlayStationBrowser) {
-          recordLibraryDiagnostics({ listingState: 'error', listingMs: Math.round(performance.now() - startedAt) })
-        }
-        if (err instanceof Error) {
-          Notification.error({
-            title: 'Get file server files error',
-            content: err.message,
-          })
-        }
-      }
-    } finally {
-      if (!didCancel) {
-        setLoading(false)
-      }
-    }
-  }
-
   useEffect(() => {
-    if (!curHost) {
-      setLoading(false)
-      if (paths.length) {
-        setPaths([])
-      }
-      setFileServerFiles([])
-      return
-    }
-
-    if (!isFileServerReady || !curHost.url) {
-      return
-    }
-
-    getServerFileListData()
-
-    return () => {
-      didCancel = true
-    }
-  }, [paths, curHost, isFileServerReady, forceWebDavDownloadLinkToHttp])
-
-  const finalFileServerFiles = useMemo(() => {
-    if (!aggregationMode) {
-      return fileServerFiles
-    }
-
-    const { titleIds, data, addon, patch } = fileServerFiles.reduce<{
-      titleIds: string[]
-      data: FileStat[]
-      patch: { [titleId: string]: FileStat[] }
-      addon: { [titleId: string]: FileStat[] }
-    }>(
-      (acc, cur) => {
-        if (cur.paramSfo?.CATEGORY === Ps4PkgCategory.AdditionalContent) {
-          acc.addon[cur.paramSfo.TITLE_ID] = [...(acc.addon[cur.paramSfo.TITLE_ID] || []), cur]
-        } else if (
-          cur.paramSfo?.CATEGORY === Ps4PkgCategory.GameApplicationPatch ||
-          cur.paramSfo?.CATEGORY === Ps4PkgCategory.ApplicationPatch
-        ) {
-          acc.patch[cur.paramSfo.TITLE_ID] = [...(acc.patch[cur.paramSfo.TITLE_ID] || []), cur]
-        } else {
-          const isExist = acc.titleIds.includes(cur.paramSfo?.TITLE_ID || '')
-          if (!isExist && cur.paramSfo?.TITLE_ID) {
-            acc.titleIds.push(cur.paramSfo?.TITLE_ID)
-          }
-          acc.data.push(cur)
+    if (!curHost || !isFileServerReady) return
+    const current = ++generation.current
+    let busy = false
+    const refresh = async () => {
+      if (busy) return
+      busy = true
+      try {
+        if (curHost.type === FileServerType.StaticFileServer && window.electron && !curHost.token) {
+          const response = await window.electron.createStaticFileServer({
+            directoryPath: curHost.directoryPath,
+            port: curHost.port,
+            preferredInterface: curHost.preferredInterface,
+          })
+          if (!response?.url || response.errorMessage) throw new Error(response?.errorMessage || '启动资源库失败')
+          if (current === generation.current)
+            setFileServerHosts((hosts) =>
+              hosts.map((host) =>
+                host.id === curHost.id
+                  ? { ...host, url: response.url, token: response.token, libraryId: response.libraryId }
+                  : host,
+              ),
+            )
+          return
         }
-        return acc
-      },
-      {
-        titleIds: [],
-        data: [],
-        patch: {},
-        addon: {},
-      },
-    )
-    const newData = data.map((item) => {
-      if (
-        item.paramSfo?.CATEGORY === Ps4PkgCategory.GameDigital ||
-        item.paramSfo?.CATEGORY === Ps4PkgCategory.Digital
-      ) {
-        item.addons = addon[item.paramSfo.TITLE_ID]
-        item.patchs = patch[item.paramSfo.TITLE_ID]
+        await connectLibrary(curHost)
+        const files = await libraryPresentation(curHost.id, !!aggregationMode)
+        if (current === generation.current) setFileServerFiles(sortServerFiles(files))
+      } catch (error) {
+        if (current === generation.current)
+          Notification.error({ title: '资源库同步失败', content: (error as Error).message })
+      } finally {
+        busy = false
+        if (current === generation.current) setLoading(false)
       }
-      return item
-    })
-    Object.keys(patch).forEach((titleId) => {
-      if (!titleIds.includes(titleId)) {
-        newData.push(...patch[titleId])
-      }
-    })
-    Object.keys(addon).forEach((titleId) => {
-      if (!titleIds.includes(titleId)) {
-        newData.push(...addon[titleId])
-      }
-    })
-    return sortServerFiles(newData)
-  }, [fileServerFiles, aggregationMode])
-
+    }
+    setLoading(true)
+    void refresh()
+    const timer = window.setInterval(refresh, 3000)
+    return () => {
+      generation.current++
+      clearInterval(timer)
+    }
+  }, [curHost, isFileServerReady, aggregationMode])
   return {
     webDavClient,
     activate,
@@ -271,11 +126,11 @@ export const useFileServer = ({
     setSearchKeyWord,
     isFileServerReady,
     setIsFileServerReady,
-    fileServerFiles: finalFileServerFiles,
+    fileServerFiles,
     setFileServerFiles,
     loading,
     setLoading,
-    pkgInfoDataLoading,
+    pkgInfoDataLoading: fileServerFiles.some((file) => ['pending', 'parsing'].includes(file.parseState || '')),
     paths,
     setPaths,
     getServerFileListData,

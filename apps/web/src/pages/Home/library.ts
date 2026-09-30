@@ -4,6 +4,8 @@ import { formatPkgName } from '@/utils'
 export type ContentFilter = 'all' | 'base' | 'patch' | 'addon'
 export type LibrarySort = 'name' | 'recent' | 'size'
 export const categoryOf = (file: FileStat): ContentFilter => {
+  if (file.resourceKind === 'unknown' || file.parseState === 'unsupported') return 'all'
+  if (file.resourceKind) return file.resourceKind === 'dlc' ? 'addon' : file.resourceKind
   if (file.paramSfo?.CATEGORY === Ps4PkgCategory.AdditionalContent) return 'addon'
   if (
     file.paramSfo?.CATEGORY === Ps4PkgCategory.GameApplicationPatch ||
@@ -25,7 +27,7 @@ export function filterLibrary(
       (file) =>
         (!text ||
           file.basename.toLocaleLowerCase().includes(text) ||
-          file.paramSfo?.TITLE?.toLocaleLowerCase().includes(text)) &&
+          (file.resourceMetadata?.title || file.paramSfo?.TITLE)?.toLocaleLowerCase().includes(text)) &&
         (category === 'all' || file.type === 'directory' || categoryOf(file) === category),
     )
     .sort((a, b) => {

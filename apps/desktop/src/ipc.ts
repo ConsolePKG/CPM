@@ -9,7 +9,6 @@ import { updater } from './updater'
 import { getAvailableInterfaces, getIp } from './utils'
 import { discoverPS4Hosts } from './ps4Discovery'
 import { sendPS5Elf } from './ps5Elf'
-import { servePS5Icon } from './ps5IconServer'
 
 export class Ipc {
   static win: BrowserWindow
@@ -41,7 +40,6 @@ export class Ipc {
     this.initWebDavServer()
     ipcMainHandle('discoverPS4Hosts', () => discoverPS4Hosts())
     ipcMainHandle('sendPS5Elf', (_, params) => sendPS5Elf(params))
-    ipcMainHandle('servePS5Icon', (_, params) => servePS5Icon(params))
 
     ipcMainHandle('getAppInfo', async () => {
       const version = app.getVersion()
@@ -64,16 +62,15 @@ export class Ipc {
 
     ipcMainHandle('createStaticFileServer', async (_, { directoryPath, port, preferredInterface }) => {
       try {
-        const res = await staticServerManager.createServer({ directoryPath, port })
+        const res = await staticServerManager.createServer({ directoryPath, port, preferredInterface })
         const ip = preferredInterface ?? getIp()
-        if (res && ip) {
-          return {
-            url: `http://${ip}:${port}`,
-          }
-        }
+        if (res.errorMessage) return res
+        if (res.url) return res
+        if (ip) return { ...res, url: `http://${ip}:${port}` }
+        return { errorMessage: '没有主机可达的网络接口' }
       } catch (err) {
         return {
-          errorMessage: `Create WebDAV server failed: ${(err as Error).message}`,
+          errorMessage: `Create library server failed: ${(err as Error).message}`,
         }
       }
     })

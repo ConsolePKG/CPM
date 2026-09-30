@@ -2,6 +2,16 @@ import { Ps4PkgParamSfo } from '@njzy/ps4-pkg-info/web'
 import { FileStat as RawFileStat, WebDAVClientOptions } from 'webdav/web'
 
 type BaseFileStat = RawFileStat & {
+  resourceId?: string
+  libraryId?: string
+  libraryConnectionId?: string
+  parseState?: string
+  resourcePlatform?: string
+  resourceKind?: string
+  resourceMetadata?: import('@consolepkg/library').PackageMetadata
+  fileVersion?: string
+  coverAssetId?: string
+  parseMessage?: string
   downloadUrl?: string
   icon0?: string
   paramSfo?: Ps4PkgParamSfo
@@ -13,6 +23,8 @@ export type FileStat = BaseFileStat & {
 }
 
 export enum FileServerType {
+  LibraryService = 'LibraryService',
+  BrowserFiles = 'BrowserFiles',
   StaticFileServer = 'StaticFileServer',
   WebDAV = 'WebDAV',
 }
@@ -37,7 +49,20 @@ export type StaticFileServerHost = {
   recursiveQuery?: boolean
 }
 
-export type FileServerHost = WebDAVHost | StaticFileServerHost
+export type FileServerHost = (
+  | WebDAVHost
+  | StaticFileServerHost
+  | {
+      id: string
+      type: FileServerType.LibraryService | FileServerType.BrowserFiles
+      alias?: string
+      url: string
+      recursiveQuery?: boolean
+      directoryPath?: string
+      port?: number
+      preferredInterface?: string
+    }
+) & { token?: string; libraryId?: string; provision?: import('@consolepkg/library').SourceConfig }
 
 export type PS4Host = {
   id: string
@@ -63,12 +88,16 @@ export type ProgressInfo = {
 }
 
 export enum TaskStatus {
+  FAILED = 'Failed',
+  UNKNOWN = 'Unknown',
+  CANCELLED = 'Cancelled',
   PAUSED = 'Paused',
   INSTALLING = 'Installing',
   FINISHED = 'Finished',
 }
 
 export enum TaskActionType {
+  RETRY = 'Retry',
   PAUSE = 'Pause',
   RESUME = 'Resume',
   CANCEL = 'Cancel',
@@ -77,7 +106,16 @@ export enum TaskActionType {
 
 export type InstallTask = {
   file: FileStat
-  taskId: number
+  taskId?: number
+  jobId?: string
+  hostId?: string
+  idempotencyKey?: string
+  retryOfJobId?: string
+  jobState?: import('@/service/jobs').JobState
+  submission?: import('@/service/jobs').JobSubmission
+  capabilities?: import('@/service/jobs').JobCapabilities
+  lastSyncedAt?: number
+  offline?: boolean
   contentId?: string
   platform?: 'ps4' | 'ps5'
   nativeState?: string

@@ -1,9 +1,9 @@
 import { describe, it, expect } from '@rstest/core'
 import { validateConsoleAddress, validateServerUrl } from '../src/pages/Hosts/validation'
-import { sampleTransfer, taskKey, transferPercent } from '../src/hooks/taskProgress'
+import { canControlJob, sampleTransfer, taskKey, transferPercent } from '../src/hooks/taskProgress'
 import { filterLibrary } from '../src/pages/Home/library'
 import { Ps4PkgCategory } from '@njzy/ps4-pkg-info/web'
-import type { FileStat } from '../src/types'
+import { type FileStat, type InstallTask, TaskStatus } from '../src/types'
 const file = (name: string, category = Ps4PkgCategory.GameDigital): FileStat => ({
   filename: `/${name}.pkg`,
   basename: name + '.pkg',
@@ -53,6 +53,41 @@ describe('original functional contracts', () => {
 })
 
 describe('progress boundaries', () => {
+  it('gates job operations by native capability, phase and connectivity', () => {
+    const task: InstallTask = {
+      file: file('Game'),
+      title: 'Game',
+      ps4HostUrl: 'http://console',
+      fileServerHostId: 'library',
+      status: TaskStatus.INSTALLING,
+      jobId: '1',
+      jobState: 'queued',
+      capabilities: {
+        protocolVersion: 1,
+        jobs: true,
+        platform: 'ps4',
+        pause: true,
+        resume: true,
+        cancel: true,
+        retry: true,
+        completionVerified: false,
+      },
+    }
+    expect(canControlJob(task, 'pause')).toBe(false)
+    expect(canControlJob(task, 'cancel')).toBe(false)
+    task.jobState = 'transferring'
+    expect(canControlJob(task, 'pause')).toBe(true)
+    expect(canControlJob(task, 'resume')).toBe(false)
+    task.offline = true
+    expect(canControlJob(task, 'pause')).toBe(false)
+    task.offline = false
+    task.capabilities!.pause = false
+    expect(canControlJob(task, 'pause')).toBe(false)
+    task.jobState = 'unknown'
+    expect(canControlJob(task, 'retry')).toBe(false)
+    task.jobState = 'failed'
+    expect(canControlJob(task, 'retry')).toBe(true)
+  })
   it('does not announce completion for a rounded 99.5 percent', () => {
     expect(transferPercent(995, 1000)).toBe(99)
     expect(transferPercent(1000, 1000)).toBe(100)
