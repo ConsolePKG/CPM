@@ -1,0 +1,13 @@
+services:
+  consolepkg:
+    build:
+      context: .
+      target: library
+    ports:
+      - '8080:8080'
+    environment:
+      CPM_EXTERNAL_URL: ${CPM_EXTERNAL_URL:?Set a console-reachable URL such as http://192.168.1.10:8080}
+    volumes:
+      - ./data:/data
+      - ${CPM_GAMES_DIRECTORY:?Set the host game folder}:/games:ro
+    restart: unless-stopped

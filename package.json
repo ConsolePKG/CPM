@@ -8,6 +8,9 @@
   },
   "packageManager": "pnpm@12.5.1",
   "scripts": {
+    "library:start": "pnpm --filter @consolepkg/server start",
+    "library:test": "pnpm --filter @consolepkg/library test",
+    "test": "pnpm --filter @consolepkg/library test && pnpm --filter web test && pnpm --filter desktop test",
     "ci:build": "pnpm install && pnpm run desktop:build",
     "dev": "pnpm run web:dev",
     "desktop:dev": "concurrently -k \"pnpm --filter web dev\" \"pnpm --filter desktop dev:main\" \"pnpm --filter desktop start:dev\"",
@@ -22,7 +25,7 @@
     "lint": "oxlint . --deny-warnings",
     "format:check": "oxfmt . --check && stylelint \"**/*.{css,less}\" --ignore-pattern \"**/dist/**\" --ignore-pattern \"**/types/**\" --ignore-pattern \"**/node_modules/**\"",
     "format": "oxfmt . && stylelint \"**/*.{css,less}\" --ignore-pattern \"**/dist/**\" --ignore-pattern \"**/types/**\" --ignore-pattern \"**/node_modules/**\" --fix",
-    "tsc": "tsc -b .",
+    "tsc": "tsc -b . && pnpm --filter @consolepkg/library tsc && pnpm --filter @consolepkg/server tsc",
     "preinstall": "npx only-allow pnpm",
     "web:mock": "pnpm run web:build && pnpm --filter web mock",
     "cpi:sync": "node scripts/sync-cpi.mjs"

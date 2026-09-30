@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import struct from 'python-struct'
+import { Buffer } from 'buffer'
 
 import { Ps4PkgParamSfo } from './types'
 import { le16, le32 } from './utils'
@@ -56,7 +57,7 @@ export const extract = async ({
       return
     }
     const { offset, size } = paramSfo
-    const chunk = await seekChunk(offset, offset + size)
+    const chunk = await seekChunk(offset, offset + size - 1)
     const paramSfoHeader = getParamSfoHeader(chunk.slice(0, size))
     const paramSfoLabels = chunk.slice(le32(paramSfoHeader.labelPtr), size)
     const paramSfoData = chunk.slice(le32(paramSfoHeader.dataPtr), size)
@@ -104,7 +105,7 @@ export const extract = async ({
     }
     const { offset, size } = icon0
 
-    return await seekChunk(offset, offset + size)
+    return await seekChunk(offset, offset + size - 1)
   }
 
   const promises: any[] = []
@@ -181,7 +182,7 @@ const getCustomTableEntryStruct = async ({
     return customTableEntryStruct
   }
 
-  const chunk = await seekChunk(offset, offset + total * 32)
+  const chunk = await seekChunk(offset, offset + total * 32 - 1)
   for (let i = 0; i < total; i++) {
     const slice = chunk.slice(i * 32, i * 32 + 32)
     const pkgTableEntryStruct = getPkgTableEntrySturct(slice)

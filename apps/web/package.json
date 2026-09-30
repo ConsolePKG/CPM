@@ -20,6 +20,7 @@
   "author": "njzy <njzydark@gmail.com>",
   "license": "MIT",
   "dependencies": {
+    "@consolepkg/library": "workspace:*",
     "@base-ui/react": "catalog:",
     "@njzy/ps4-pkg-info": "workspace:^0.1.0",
     "@noble/hashes": "2.4.0",

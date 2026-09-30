@@ -3,7 +3,11 @@ packages:
   - packages/*
   - infra/*
 
+allowUnusedPatches: true
+
 allowBuilds:
+  better-sqlite3: true
+  esbuild: true
   core-js: false
   electron-winstaller: true
 

@@ -1,0 +1,37 @@
+{
+  "name": "@consolepkg/library",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./browser": {
+      "source": "./src/browser.ts",
+      "default": "./src/browser.ts"
+    },
+    "./node": {
+      "source": "./src/node/index.ts",
+      "default": "./src/node/index.ts"
+    }
+  },
+  "scripts": {
+    "test": "rstest run",
+    "tsc": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@njzy/ps4-pkg-info": "workspace:^0.1.0",
+    "better-sqlite3": "^12.4.1",
+    "buffer": "^6.0.3",
+    "webdav": "5.10.0",
+    "tsx": "^4.20.6"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "22",
+    "@rstest/core": "catalog:",
+    "typescript": "catalog:"
+  }
+}

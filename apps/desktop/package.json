@@ -31,6 +31,11 @@
     "test": "rstest run"
   },
   "build": {
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**"
+    ],
+    "npmRebuild": true,
+    "beforeBuild": "./scripts/rebuildNative.cjs",
     "extraMetadata": {
       "name": "PS4RPS"
     },
@@ -106,6 +111,8 @@
     }
   },
   "dependencies": {
+    "@consolepkg/library": "workspace:*",
+    "better-sqlite3": "^12.4.1",
     "@njzy/ps4-pkg-info": "workspace:^0.1.0",
     "axios": "1.20.0",
     "common": "workspace:^1.0.0-beta.8",
@@ -120,6 +127,7 @@
     "webdav-server": "2.6.2"
   },
   "devDependencies": {
+    "@electron/rebuild": "4.2.0",
     "@rsbuild/core": "catalog:",
     "cross-env": "10.1.0",
     "electron": "catalog:",

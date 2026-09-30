@@ -15,6 +15,14 @@
   ],
   "main": "dist/index.js",
   "exports": {
+    "./core": {
+      "source": "./src/core.ts",
+      "default": "./src/core.ts"
+    },
+    "./resources": {
+      "source": "./src/resources.ts",
+      "default": "./src/resources.ts"
+    },
     "./web": {
       "source": "./src/web/index.ts",
       "import": "./web/index.mjs",

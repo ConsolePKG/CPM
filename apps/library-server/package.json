@@ -1,0 +1,13 @@
+{
+  "name": "@consolepkg/server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "tsc": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@consolepkg/library": "workspace:*",
+    "tsx": "^4.20.6"
+  }
+}
