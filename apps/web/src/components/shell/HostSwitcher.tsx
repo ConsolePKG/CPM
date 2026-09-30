@@ -44,13 +44,13 @@ export function HostSwitcher() {
           >
             <Monitor />
             <span>
-              <strong>{host.alias || 'PS4'}</strong>
+              <strong>{host.alias || (host.platform === 'ps5' ? 'PS5' : 'PS4')}</strong>
               <small>{host.url}</small>
             </span>
             {host.id === curSelectPs4HostId && <Check aria-label="当前主机" />}
           </Button>
         ))}
-        {!ps4Hosts.length && <p className="muted">还没有添加 PS4 主机</p>}
+        {!ps4Hosts.length && <p className="muted">还没有添加主机</p>}
         <Button
           variant="text"
           icon={<Plus />}

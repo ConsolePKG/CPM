@@ -20,7 +20,7 @@ export function PS4Host() {
   return (
     <section className="hosts-section">
       <div className="hosts-heading">
-        <p>管理 Remote Package Installer 安装目标。</p>
+        <p>管理 PS4 和 PS5 的 CPI 安装目标。</p>
         <Button icon={<Plus />} type="primary" onClick={() => open()}>
           添加主机
         </Button>
@@ -30,7 +30,7 @@ export function PS4Host() {
           <ConfigCard
             key={host.id}
             title={host.alias || host.url}
-            meta={host.url}
+            meta={`${host.platform === 'ps5' ? 'PS5' : 'PS4'} · ${host.url}`}
             isActive={host.id === curSelectPs4HostId}
             onClick={() => setCurSelectPs4HostId(host.id)}
             action={

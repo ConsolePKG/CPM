@@ -43,6 +43,7 @@ export type PS4Host = {
   id: string
   alias?: string
   url: string
+  platform?: 'ps4' | 'ps5'
 }
 
 export type ProgressInfo = {
@@ -77,6 +78,9 @@ export enum TaskActionType {
 export type InstallTask = {
   file: FileStat
   taskId: number
+  contentId?: string
+  platform?: 'ps4' | 'ps5'
+  nativeState?: string
   title: string
   ps4HostUrl: string
   fileServerHostId: string

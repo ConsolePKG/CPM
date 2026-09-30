@@ -22,7 +22,11 @@ export function TaskCard({
     : task.errorMessage
       ? '出错'
       : active
-        ? '下载中'
+        ? task.platform === 'ps5'
+          ? task.nativeState === 'playable'
+            ? '可启动'
+            : task.nativeState || '安装中'
+          : '下载中'
         : complete
           ? '已完成'
           : '已暂停'
@@ -38,14 +42,16 @@ export function TaskCard({
   return (
     <article className={`task-card ${active ? 'is-downloading' : 'is-compact'}`}>
       <div className="game-cover task-cover">
-        <GameCover file={task.file} />
+        <GameCover file={task.file} platform={task.platform} />
       </div>
       <div className="task-copy">
         <div className="task-title">
           <h2>{task.title || task.file.basename}</h2>
           <span className={task.errorMessage ? 'task-error' : 'muted'}>{status}</span>
         </div>
-        <p className="task-host">PS4 · {task.ps4HostUrl}</p>
+        <p className="task-host">
+          {task.platform === 'ps5' ? 'PS5' : 'PS4'} · {task.ps4HostUrl}
+        </p>
         <div className="task-progress-label">
           <strong>
             {status} {percent}%
@@ -75,7 +81,7 @@ export function TaskCard({
         )}
       </div>
       <div className="task-actions">
-        {!complete && !task.cleanupPending && (
+        {!complete && !task.cleanupPending && task.platform !== 'ps5' && (
           <IconButton
             label={active ? '暂停任务' : '继续任务'}
             loading={busy}
@@ -85,10 +91,14 @@ export function TaskCard({
           </IconButton>
         )}
         <IconButton
-          label={task.cleanupPending ? '重新查询取消结果' : complete ? '删除任务记录' : '取消下载'}
+          label={
+            task.cleanupPending ? '重新查询取消结果' : complete || task.platform === 'ps5' ? '删除任务记录' : '取消下载'
+          }
           variant="text"
           disabled={busy}
-          onClick={() => setConfirmation(complete ? TaskActionType.DELETE : TaskActionType.CANCEL)}
+          onClick={() =>
+            setConfirmation(complete || task.platform === 'ps5' ? TaskActionType.DELETE : TaskActionType.CANCEL)
+          }
         >
           <Trash2 />
         </IconButton>
@@ -103,7 +113,7 @@ export function TaskCard({
         title={confirmation === TaskActionType.DELETE ? '删除任务记录？' : '取消下载？'}
         description={
           confirmation === TaskActionType.DELETE
-            ? '仅移除 CPM 记录，不会清理 PS4 上的内容。若有残留，请先在主机上处理。'
+            ? `仅移除 CPM 记录，不会清理 ${task.platform === 'ps5' ? 'PS5' : 'PS4'} 上的内容。`
             : '取消下载。CPI 确认是全新未完成本体时会卸载并删除；补丁、DLC、重装或状态未知时保留待清理记录，不卸载已有内容。'
         }
         confirmText={confirmation === TaskActionType.DELETE ? '删除记录' : '确认取消'}

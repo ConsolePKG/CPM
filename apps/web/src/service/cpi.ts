@@ -5,9 +5,15 @@ export const hashPayload = (bytes: ArrayBuffer) => bytesToHex(sha256(new Uint8Ar
 
 export type CPIStatus = {
   state: 'online' | 'legacy' | 'offline'
+  platform?: 'ps4' | 'ps5'
   version?: string
   payloadUpdate?: boolean
   systemVersion?: string
+  appinstError?: number
+  canShutdown?: boolean
+  canPauseResume?: boolean
+  canCancel?: boolean
+  iconUpload?: boolean
   message?: string
 }
 export type CPIBundle = { version: string; filename: string; size: number; sha256: string }
@@ -18,14 +24,33 @@ export async function getCPIStatus(host: string, signal?: AbortSignal): Promise<
       signal,
       validateStatus: () => true,
     })
-    if ((status === 200 && data?.status === 'success') || (status === 503 && data?.status === 'fail')) {
+    if (
+      (status === 200 && ['success', 'ready', 'unavailable'].includes(data?.status)) ||
+      (status === 503 && data?.status === 'fail')
+    ) {
       if (typeof data.version === 'string')
         return {
           state: 'online',
+          platform: data.platform === 'ps5' ? 'ps5' : 'ps4',
           version: data.version,
           payloadUpdate: data.payload_update === true,
-          systemVersion: typeof data.system_version === 'string' ? data.system_version : undefined,
-          message: status === 503 ? 'CPI 在线，但系统版本读取失败' : undefined,
+          systemVersion:
+            typeof data.system_version === 'string'
+              ? data.system_version
+              : typeof data.system_version === 'number'
+                ? `${((data.system_version >>> 24) & 255).toString(16)}.${((data.system_version >>> 16) & 255).toString(16).padStart(2, '0')}`
+                : undefined,
+          appinstError: typeof data.appinst_error === 'number' ? data.appinst_error : undefined,
+          canShutdown: data.shutdown === true || data.platform !== 'ps5',
+          canPauseResume: data.platform !== 'ps5' || data.pause_resume === true,
+          canCancel: data.platform !== 'ps5' || data.cancel === true,
+          iconUpload: data.icon_upload === true,
+          message:
+            data.status === 'unavailable'
+              ? 'PS5 AppInstUtil 不可用'
+              : status === 503
+                ? 'CPI 在线，但系统版本读取失败'
+                : undefined,
         }
     }
     if (status !== 404) return { state: 'offline', message: 'CPI 状态响应异常' }
@@ -38,12 +63,100 @@ export async function getCPIStatus(host: string, signal?: AbortSignal): Promise<
   }
   return { state: 'offline', message: 'CPI 未连接，请检查主机、端口及服务；网页也可能受浏览器网络限制' }
 }
-export async function getCPIBundle(): Promise<CPIBundle> {
-  const { data } = await axios.get<CPIBundle>('./cpi/manifest.json', { timeout: 5000, params: { t: Date.now() } })
-  if (!data?.version || data.filename !== 'rpi-payload-ps4.elf' || !/^[a-f0-9]{64}$/.test(data.sha256)) {
+export async function getCPIBundle(platform: 'ps4' | 'ps5' = 'ps4'): Promise<CPIBundle> {
+  const filename = `rpi-payload-${platform}.elf`
+  const manifest = platform === 'ps5' ? 'manifest-ps5.json' : 'manifest.json'
+  const { data } = await axios.get<CPIBundle>(`./cpi/${manifest}`, { timeout: 5000, params: { t: Date.now() } })
+  if (!data?.version || data.filename !== filename || !/^[a-f0-9]{64}$/.test(data.sha256)) {
     throw new Error('内置 CPI 文件信息无效')
   }
   return data
+}
+
+export async function reinstallPS5CPI(
+  host: string,
+  loaderPort: number,
+  update: (message: string) => void,
+): Promise<CPIStatus> {
+  if (!window.electron?.sendPS5Elf) throw new Error('PS5 ELF 需要在 Electron 中通过 TCP 9021 发送')
+  const target = new URL(host)
+  if (
+    target.protocol !== 'http:' ||
+    target.username ||
+    target.password ||
+    target.pathname !== '/' ||
+    target.search ||
+    target.hash ||
+    !/^\d{1,3}(?:\.\d{1,3}){3}$/.test(target.hostname)
+  )
+    throw new Error('PS5 主机需要填写 IP 和 CPI 端口')
+  if (!Number.isInteger(loaderPort) || loaderPort < 1 || loaderPort > 65535) throw new Error('ELF loader 端口无效')
+  if (activeReinstalls.has(target.hostname)) throw new Error('此主机正在更新 CPI')
+  activeReinstalls.add(target.hostname)
+  try {
+    update('正在校验 PS5 ELF…')
+    const manifest = await getCPIBundle('ps5')
+    const { data: bytes } = await axios.get<ArrayBuffer>('./cpi/rpi-payload-ps5.elf', {
+      responseType: 'arraybuffer',
+      timeout: 15000,
+    })
+    if (
+      !(bytes instanceof ArrayBuffer) ||
+      bytes.byteLength !== manifest.size ||
+      new Uint8Array(bytes, 0, 4).join(',') !== '127,69,76,70' ||
+      hashPayload(bytes) !== manifest.sha256
+    )
+      throw new Error('PS5 ELF 校验失败')
+    const before = await getCPIStatus(target.origin)
+    if (before.state === 'online') {
+      if (before.platform !== 'ps5' || !before.canShutdown)
+        throw new Error('当前 CPI 不支持远程退出。请在主机上停止旧服务后重试')
+      update('正在退出当前 PS5 CPI…')
+      const stopped = await axios.post(`${target.origin}/api/shutdown`, undefined, { timeout: 5000 })
+      if (stopped.status !== 202 || stopped.data?.state !== 'shutting_down') throw new Error('PS5 CPI 未接受退出请求')
+      let offline = false
+      for (let i = 0; i < 20; i++) {
+        await delay(500)
+        if ((await getCPIStatus(target.origin)).state === 'offline') {
+          offline = true
+          break
+        }
+      }
+      if (!offline) throw new Error('旧 PS5 CPI 尚未退出')
+    }
+    update(`正在通过 ${target.hostname}:${loaderPort} 发送 PS5 ELF…`)
+    await window.electron.sendPS5Elf({ host: target.hostname, port: loaderPort, bytes: new Uint8Array(bytes) })
+    update('正在等待 PS5 CPI 上线…')
+    const cpi = new URL(target.origin)
+    cpi.port = '12801'
+    for (let i = 0; i < 20; i++) {
+      await delay(1000)
+      const status = await getCPIStatus(cpi.origin)
+      if (
+        status.state === 'online' &&
+        status.platform === 'ps5' &&
+        status.version === manifest.version &&
+        status.canShutdown
+      )
+        return status
+    }
+    throw new Error('ELF 已发送，但未确认新版 PS5 CPI 上线')
+  } finally {
+    activeReinstalls.delete(target.hostname)
+  }
+}
+
+export async function stopPS5CPI(host: string): Promise<void> {
+  const current = await getCPIStatus(host)
+  if (current.state !== 'online' || current.platform !== 'ps5' || !current.canShutdown)
+    throw new Error('当前 PS5 CPI 不支持远程停止')
+  const { status, data } = await axios.post(`${host}/api/shutdown`, undefined, { timeout: 5000 })
+  if (status !== 202 || data?.state !== 'shutting_down') throw new Error('PS5 CPI 未接受停止请求')
+  for (let i = 0; i < 20; i++) {
+    await delay(500)
+    if ((await getCPIStatus(host)).state === 'offline') return
+  }
+  throw new Error('PS5 CPI 尚未退出，请检查主机状态')
 }
 
 // GoldHEN HTTP sender reference:

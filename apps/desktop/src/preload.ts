@@ -28,6 +28,8 @@ export const preload = () => {
     openDirectoryDialog: () => ipcRendererSendSync('openDirectoryDialog'),
     getAvailableInterfaces: () => ipcRendererInvoke('getAvailableInterfaces'),
     discoverPS4Hosts: () => ipcRendererInvoke('discoverPS4Hosts'),
+    sendPS5Elf: (params) => ipcRendererInvoke('sendPS5Elf', params),
+    servePS5Icon: (params) => ipcRendererInvoke('servePS5Icon', params),
     openAppLog: () => ipcRendererInvoke('openAppLog'),
     checkUpdate: () => ipcRendererInvoke('checkUpdate'),
   }

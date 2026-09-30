@@ -1,5 +1,6 @@
 import type { InstallTask } from '@/types'
-export const taskKey = (task: Pick<InstallTask, 'taskId' | 'ps4HostUrl'>) => `${task.ps4HostUrl}#${task.taskId}`
+export const taskKey = (task: Pick<InstallTask, 'taskId' | 'contentId' | 'ps4HostUrl'>) =>
+  `${task.ps4HostUrl}#${task.contentId || task.taskId}`
 export function sampleTransfer(
   previous: Pick<InstallTask, 'sampleTime' | 'sampleTransferred' | 'speedHistory'>,
   transferred: number,

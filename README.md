@@ -115,6 +115,16 @@ manifest. After rebuilding CPI in the sibling repository, run `pnpm cpi:sync` to
 refresh both before releasing CPM. The web build copies these public assets into
 the output; desktop packaging includes the same renderer assets.
 
+PS5 hosts running etaHEN use the separate AppInstUtil CPI payload. In Electron,
+CPM sends its bundled ELF directly to the public TCP 9021 loader, uses Content
+IDs for progress, and serves package artwork from a local HTTP listener that
+the PS5 can reach. An interrupted install response leaves a task to query by
+Content ID; CPM does not resend the package automatically. PS5 task records
+survive a CPM restart. Updating PS5 CPI stops the running instance before
+sending the new ELF. PS5 pause, resume and cancel controls remain disabled
+until their native behavior is verified. Rebuild and sync the PS5 ELF with
+`node scripts/sync-cpi.mjs ../CPI/rpi-payload-ps5.elf`.
+
 “重装 CPI” uses GoldHEN's HTTP protocol in both web and Electron: POST `/status`
 on the configurable Payload Server port (default 9090), followed by POST `/` with
 the raw ELF ArrayBuffer. Reference: [hippie68's browser sender](https://github.com/hippie68/hippie68.github.io/blob/master/900/index.html).

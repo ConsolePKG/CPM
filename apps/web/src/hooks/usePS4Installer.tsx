@@ -1,4 +1,5 @@
 import { Link, Notification } from '@/components/ui'
+import axios from 'axios'
 import { useEffect, useRef, useState } from 'react'
 import { usePS4HostForm } from './useHostForms'
 import { useNavigate } from 'react-router-dom'
@@ -20,6 +21,27 @@ import { FileStat, InstallTask, PS4Host, TaskActionType, TaskStatus } from '@/ty
 import { getInitConfigFromStore, updateConfigStore } from '@/utils'
 import { isPlayStationBrowser } from '@/utils/browser'
 import { initializeLocalConsole, localConsoleSetupKey } from './localConsole'
+import { getCPIStatus } from '@/service/cpi'
+import { installPS5, progressPS5, uploadPS5Icon } from '@/service/ps5'
+import { getLibraryPkgInfo } from './pkgInfoReader'
+
+const ps5TasksKey = 'cpm-ps5-install-tasks'
+function readPS5Tasks(): InstallTask[] {
+  try {
+    const saved = JSON.parse(localStorage.getItem(ps5TasksKey) || '[]')
+    return Array.isArray(saved)
+      ? saved.filter(
+          (task): task is InstallTask =>
+            task?.platform === 'ps5' &&
+            typeof task.contentId === 'string' &&
+            typeof task.ps4HostUrl === 'string' &&
+            typeof task.file?.basename === 'string',
+        )
+      : []
+  } catch {
+    return []
+  }
+}
 
 export const usePS4Installer = (fileServerHostId?: string) => {
   const [initial] = useState(() => {
@@ -40,9 +62,27 @@ export const usePS4Installer = (fileServerHostId?: string) => {
   })
   const [ps4Hosts, setPs4Hosts] = useState<PS4Host[]>(initial.hosts)
   const [curSelectPs4HostId, setCurSelectPs4HostId] = useState<string | undefined>(initial.selected)
-  const [installTasks, setInstallTasks] = useState<InstallTask[]>([])
+  const [installTasks, setInstallTasks] = useState<InstallTask[]>(readPS5Tasks)
   const [totalSpeedHistory, setTotalSpeedHistory] = useState<number[]>([])
   const lastSpeedSnapshot = useRef('')
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        ps5TasksKey,
+        JSON.stringify(
+          installTasks
+            .filter((task) => task.platform === 'ps5')
+            .map((task) => ({
+              ...task,
+              file: { ...task.file, downloadUrl: undefined, icon0: undefined, addons: undefined, patchs: undefined },
+            })),
+        ),
+      )
+    } catch {
+      /* Browsers may disable local storage. */
+    }
+  }, [installTasks])
 
   useEffect(() => {
     if (!installTasks.length) return
@@ -66,6 +106,20 @@ export const usePS4Installer = (fileServerHostId?: string) => {
   const curPs4Host = ps4Hosts.find((item) => item.id === curSelectPs4HostId)
 
   useEffect(() => {
+    if (!curPs4Host || curPs4Host.platform) return
+    let cancelled = false
+    void getCPIStatus(curPs4Host.url).then((status) => {
+      if (!cancelled && status.state === 'online' && status.platform)
+        setPs4Hosts((hosts) =>
+          hosts.map((host) => (host.id === curPs4Host.id ? { ...host, platform: status.platform } : host)),
+        )
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [curPs4Host?.id, curPs4Host?.url, curPs4Host?.platform])
+
+  useEffect(() => {
     if (curPs4Host?.url) {
       changeBaseUrl(curPs4Host.url)
     }
@@ -87,6 +141,7 @@ export const usePS4Installer = (fileServerHostId?: string) => {
   const { open: openHostForm } = usePS4HostForm()
 
   const handleInstall = async (file: FileStat) => {
+    let uncertainPS5: { contentId: string; title: string; host: string; fileServerHostId: string } | undefined
     try {
       if (!curPs4Host) {
         return Notification.error({
@@ -102,7 +157,7 @@ export const usePS4Installer = (fileServerHostId?: string) => {
                   openHostForm()
                 }}
               >
-                添加 PS4 主机
+                添加主机
               </Link>
               first
             </>
@@ -115,6 +170,55 @@ export const usePS4Installer = (fileServerHostId?: string) => {
       }
       if (!file.downloadUrl) {
         throw new Error(`Download url not found`)
+      }
+      const cpi = await getCPIStatus(curPs4Host.url)
+      if (cpi.state === 'online' && cpi.platform === 'ps5') {
+        let title = file.paramSfo?.TITLE
+        let contentId = file.paramSfo?.CONTENT_ID
+        let iconSource: string | Uint8Array | undefined = file.icon0
+        if (!title || !contentId || !iconSource) {
+          try {
+            const info = await getLibraryPkgInfo(file.downloadUrl)
+            title ||= info?.paramSfo?.TITLE
+            contentId ||= info?.paramSfo?.CONTENT_ID
+            iconSource ||= info?.icon0Raw
+          } catch {
+            /* Fall back to the file name and any cached metadata. */
+          }
+        }
+        title ||= file.basename.replace(/\.pkg$/i, '')
+        Notification.info({ id: file.basename, title, content: '正在向 PS5 发送安装任务' })
+        let iconUrl: string | undefined
+        if ((cpi.iconUpload || window.electron?.servePS5Icon) && iconSource && contentId) {
+          try {
+            iconUrl = await uploadPS5Icon(curPs4Host.url, contentId, iconSource)
+          } catch (error) {
+            Notification.error(`PS5 封面上传失败：${(error as Error).message}`)
+          }
+        }
+        if (contentId && /^[A-Za-z0-9]{6}-[A-Za-z0-9]{9}_[A-Za-z0-9]{2}-[A-Za-z0-9]{16}$/.test(contentId))
+          uncertainPS5 = { contentId, title, host: curPs4Host.url, fileServerHostId }
+        const result = await installPS5(curPs4Host.url, file.downloadUrl, title, iconUrl)
+        const task: InstallTask = {
+          file,
+          taskId: 0,
+          contentId: result.content_id,
+          platform: 'ps5',
+          title,
+          ps4HostUrl: curPs4Host.url,
+          fileServerHostId,
+          nativeState: result.install_state,
+          status: TaskStatus.INSTALLING,
+        }
+        setInstallTasks((previous) =>
+          previous.some((item) => taskKey(item) === taskKey(task)) ? previous : [task, ...previous],
+        )
+        Notification.success({
+          id: file.basename,
+          title: task.title,
+          content: 'PS5 已接受安装任务，可在任务页查看进度',
+        })
+        return
       }
       Notification.info({
         id: file.basename,
@@ -166,6 +270,29 @@ export const usePS4Installer = (fileServerHostId?: string) => {
         })
       }
     } catch (err) {
+      if (uncertainPS5 && axios.isAxiosError(err) && !err.response) {
+        const task: InstallTask = {
+          file,
+          taskId: 0,
+          contentId: uncertainPS5.contentId,
+          platform: 'ps5',
+          title: uncertainPS5.title,
+          ps4HostUrl: uncertainPS5.host,
+          fileServerHostId: uncertainPS5.fileServerHostId,
+          status: TaskStatus.INSTALLING,
+          errorMessage: '安装响应中断，正在等待 CPI 恢复并确认任务状态',
+        }
+        setInstallTasks((previous) =>
+          previous.some((item) => taskKey(item) === taskKey(task)) ? previous : [task, ...previous],
+        )
+        Notification.info({
+          id: file.basename,
+          title: task.title,
+          content: '与 CPI 的连接中断。任务页会按包的 Content ID 查询结果，请勿重复发送。',
+          duration: 0,
+        })
+        return
+      }
       // @ts-ignore
       const errMessage = String(err?.response?.data?.error || err?.message || '未知错误')
       const isErrorCausedByFilePathFormat = errMessage.includes('Unable to set up prerequisites for package')
@@ -203,6 +330,41 @@ export const usePS4Installer = (fileServerHostId?: string) => {
       checking = true
       const promises = needCheckInstallTasks.map(async (item) => {
         try {
+          if (item.platform === 'ps5' && item.contentId) {
+            const data = await progressPS5(item.ps4HostUrl, item.contentId)
+            if (didCheckProgressCacncel) return undefined
+            const transferred = data.downloaded_size || 0
+            const total = data.total_size || item.file.size
+            const rawState = data.install_state || ''
+            const complete = /^(playable|complete|completed|finished|done|installed)$/i.test(rawState)
+            const percent = complete ? 100 : Math.min(99, transferPercent(transferred, total))
+            const progressInfo = {
+              preparing_percent: data.promote_progress || 0,
+              local_copy_percent: data.local_copy_percent || 0,
+              rest_sec: 0,
+              rest_sec_total: 0,
+              num_index: 0,
+              num_total: 0,
+              length: transferred,
+              length_total: total,
+              transferred,
+              transferred_total: transferred,
+              error: data.install_error || 0,
+              bits: 0,
+              _percent: percent,
+            }
+            if (data.install_error) throw new Error(`PS5 安装错误：0x${(data.install_error >>> 0).toString(16)}`)
+            return {
+              taskId: item.taskId,
+              contentId: item.contentId,
+              ps4HostUrl: item.ps4HostUrl,
+              status: complete ? TaskStatus.FINISHED : TaskStatus.INSTALLING,
+              nativeState: rawState,
+              progressInfo,
+              errorMessage: undefined,
+              ...sampleTransfer(item, transferred, Date.now()),
+            }
+          }
           const { data } = await getTaskProgressApi(item.taskId, item.ps4HostUrl)
           if (didCheckProgressCacncel) return undefined
           if (data.status === 'fail') throw new Error(`读取进度失败: ${data.error_code || data.error || ''}`)
@@ -229,7 +391,8 @@ export const usePS4Installer = (fileServerHostId?: string) => {
         } catch (err) {
           return {
             taskId: item.taskId,
-            status: TaskStatus.PAUSED,
+            contentId: item.contentId,
+            status: item.platform === 'ps5' ? TaskStatus.INSTALLING : TaskStatus.PAUSED,
             errorMessage: (err as Error).message,
             ps4HostUrl: item.ps4HostUrl,
           }
@@ -241,7 +404,9 @@ export const usePS4Installer = (fileServerHostId?: string) => {
         setInstallTasks((pre) => {
           const newInstallTasks = pre.reduce<InstallTask[]>((acc, cur) => {
             const curProgressInfo = res.find(
-              (item) => item?.taskId === cur.taskId && item?.ps4HostUrl === cur.ps4HostUrl,
+              (item) =>
+                item?.ps4HostUrl === cur.ps4HostUrl &&
+                (cur.platform === 'ps5' ? item?.contentId === cur.contentId : item?.taskId === cur.taskId),
             )
             if (curProgressInfo && !cur.cleanupPending) {
               acc.push({ ...cur, ...curProgressInfo })
@@ -272,6 +437,7 @@ export const usePS4Installer = (fileServerHostId?: string) => {
         setInstallTasks((pre) => pre.filter((item) => taskKey(item) !== taskKey(installTask)))
         return
       }
+      if (installTask.platform === 'ps5') throw new Error('当前 PS5 CPI 尚未提供经过验证的暂停、恢复或取消接口')
       const { data } = await (actionType === TaskActionType.PAUSE
         ? pauseApi(installTask.taskId, installTask.ps4HostUrl)
         : actionType === TaskActionType.RESUME

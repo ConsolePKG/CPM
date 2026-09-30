@@ -8,6 +8,8 @@ import { storeManager } from './store'
 import { updater } from './updater'
 import { getAvailableInterfaces, getIp } from './utils'
 import { discoverPS4Hosts } from './ps4Discovery'
+import { sendPS5Elf } from './ps5Elf'
+import { servePS5Icon } from './ps5IconServer'
 
 export class Ipc {
   static win: BrowserWindow
@@ -38,6 +40,8 @@ export class Ipc {
   protected init() {
     this.initWebDavServer()
     ipcMainHandle('discoverPS4Hosts', () => discoverPS4Hosts())
+    ipcMainHandle('sendPS5Elf', (_, params) => sendPS5Elf(params))
+    ipcMainHandle('servePS5Icon', (_, params) => servePS5Icon(params))
 
     ipcMainHandle('getAppInfo', async () => {
       const version = app.getVersion()
