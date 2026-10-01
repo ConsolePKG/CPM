@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Alert, Button, ConfirmDialog, FormField, Input } from '@/design-system'
+import { Alert, Button, ConfirmDialog, Disclosure, FormField, Input, SegmentedControl } from '@/design-system'
 import {
   getCPIBundle,
   getCPIStatus,
@@ -15,11 +15,13 @@ export function CPIManager({
   platform,
   onBusyChange,
   onInstalled,
+  onDetectedPlatform,
 }: {
   host: string
   platform: 'ps4' | 'ps5'
   onBusyChange: (busy: boolean) => void
   onInstalled: (address: string) => void
+  onDetectedPlatform: (platform: 'ps4' | 'ps5') => void
 }) {
   const [status, setStatus] = useState<CPIStatus>()
   const [bundle, setBundle] = useState<CPIBundle>()
@@ -35,21 +37,25 @@ export function CPIManager({
   const mounted = useRef(true)
   useEffect(() => {
     mounted.current = true
-    getCPIBundle(platform)
-      .then((value) => {
-        if (mounted.current) setBundle(value)
-      })
-      .catch((error) => {
-        if (mounted.current) setBundleError(error.message)
-      })
     return () => {
       mounted.current = false
     }
-  }, [platform])
+  }, [])
   useEffect(() => {
+    let active = true
     setPort(platform === 'ps5' ? '9021' : '9090')
     setBundle(undefined)
     setBundleError('')
+    getCPIBundle(platform)
+      .then((value) => {
+        if (active) setBundle(value)
+      })
+      .catch((error) => {
+        if (active) setBundleError(error.message)
+      })
+    return () => {
+      active = false
+    }
   }, [platform])
   useEffect(() => {
     const controller = new AbortController()
@@ -58,7 +64,10 @@ export function CPIManager({
     const timer = setTimeout(() => {
       getCPIStatus(host, controller.signal)
         .then((value) => {
-          if (!controller.signal.aborted) setStatus(value)
+          if (!controller.signal.aborted) {
+            setStatus(value)
+            if (value.state === 'online' && value.platform) onDetectedPlatform(value.platform)
+          }
         })
         .catch(() => {})
         .finally(() => {
@@ -69,7 +78,7 @@ export function CPIManager({
       clearTimeout(timer)
       controller.abort()
     }
-  }, [host, refresh])
+  }, [host, refresh, onDetectedPlatform])
   const reinstall = async () => {
     if (running.current) return
     running.current = true
@@ -83,7 +92,7 @@ export function CPIManager({
       if (mounted.current) {
         setStatus(online)
         setMessage(
-          `CPI ${online.version} 已上线。${platform === 'ps5' ? 'PS5 ELF 已通过 9021 加载。' : '启动文件已更新并校验。'}`,
+          `CPI ${online.version} 已上线。${platform === 'ps5' ? `PS5 ELF 已通过 ${port} 加载。` : '启动文件已更新并校验。'}`,
         )
         const installed = new URL(host)
         installed.port = '12801'
@@ -119,73 +128,128 @@ export function CPIManager({
   }
   return (
     <section className="cpi-manager" aria-label="CPI 服务">
-      <div className="ps4-discovery-heading">
-        <strong>CPI 服务</strong>
+      <div className="cpi-heading">
+        <div>
+          <strong>CPI 安装服务</strong>
+          <span className="cpi-connection" data-online={!checking && status?.state === 'online'} role="status">
+            {checking
+              ? '查询中…'
+              : status?.state === 'online'
+                ? '已连接'
+                : status?.state === 'legacy'
+                  ? '旧版服务'
+                  : '未连接'}
+          </span>
+        </div>
         <Button variant="text" loading={checking} disabled={busy} onClick={() => setRefresh((value) => value + 1)}>
-          刷新状态
+          刷新
         </Button>
       </div>
-      <dl className="cpi-status-grid" aria-live="polite">
-        <dt>服务状态</dt>
-        <dd>
+      {status?.state === 'online' ? (
+        <>
+          <dl className="cpi-overview">
+            <div>
+              <dt>主机</dt>
+              <dd>
+                {platform.toUpperCase()} <small>系统 {status.systemVersion || '未知'}</small>
+              </dd>
+            </div>
+            <div>
+              <dt>当前版本</dt>
+              <dd>{status.version || '未知'}</dd>
+            </div>
+            <div>
+              <dt>内置版本</dt>
+              <dd>{bundle?.version || (bundleError ? '读取失败' : '读取中…')}</dd>
+            </div>
+          </dl>
+          {platform === 'ps5' && (
+            <div className="cpi-capabilities" aria-label="服务功能">
+              <span data-available={status.appinstError === 0}>
+                {status.appinstError === 0
+                  ? '安装服务可用'
+                  : status.appinstError === undefined
+                    ? '安装服务待确认'
+                    : '安装服务异常'}
+              </span>
+              <span data-available={status.iconUpload}>{status.iconUpload ? '支持安装封面' : '暂不支持安装封面'}</span>
+              <span data-available={status.canPauseResume && status.canCancel}>
+                {status.canPauseResume && status.canCancel ? '支持暂停与取消' : '任务控制待验证'}
+              </span>
+            </div>
+          )}
+        </>
+      ) : (
+        <p className="cpi-description">
           {checking
-            ? '查询中…'
-            : status?.state === 'online'
-              ? 'CPI 在线'
-              : status?.state === 'legacy'
-                ? '旧版安装服务在线'
-                : '未连接'}
-        </dd>
-        <dt>{platform.toUpperCase()} 系统版本</dt>
-        <dd>{status?.systemVersion || '未知'}</dd>
-        <dt>CPI 软件版本</dt>
-        <dd>{status?.version || '未知'}</dd>
-        {platform === 'ps5' && (
-          <>
-            <dt>AppInst 状态</dt>
-            <dd>
-              {status?.appinstError === undefined
-                ? '未知'
-                : status.appinstError === 0
-                  ? '可用'
-                  : `错误 0x${(status.appinstError >>> 0).toString(16)}`}
-            </dd>
-          </>
-        )}
-        {platform === 'ps5' && (
-          <>
-            <dt>PS5 安装封面</dt>
-            <dd>{status?.iconUpload ? '支持上传' : '当前 ELF 未提供'}</dd>
-            <dt>任务控制</dt>
-            <dd>
-              {status?.canPauseResume && status?.canCancel
-                ? '支持暂停、恢复、取消'
-                : '可查询进度；暂停、恢复、取消待验证'}
-            </dd>
-          </>
-        )}
-        <dt>内置 CPI 版本</dt>
-        <dd>{bundle ? `${bundle.version} · ${bundle.sha256.slice(0, 12)}` : bundleError || '读取中…'}</dd>
-      </dl>
-      {status?.message && <p>{status.message}</p>}
-      <FormField label={platform === 'ps5' ? 'etaHEN ELF loader 端口' : 'GoldHEN Payload Server 端口'}>
-        <Input value={port} onChange={setPort} disabled={busy} placeholder={platform === 'ps5' ? '9021' : '9090'} />
-      </FormField>
-      <div className="cpi-manager-actions">
-        <Button loading={busy} disabled={!bundle || checking} onClick={() => setConfirmation(true)}>
-          {platform === 'ps5' ? '更新 PS5 CPI' : '重装 CPI'}
-        </Button>
-        {platform === 'ps5' && status?.state === 'online' && status.canShutdown && (
-          <Button disabled={busy} onClick={() => setStopConfirmation(true)}>
-            停止 CPI
-          </Button>
-        )}
-        {bundle && (
-          <a href={`./cpi/rpi-payload-${platform}.elf`} download={`rpi-payload-${platform}.elf`}>
-            下载内置 ELF
-          </a>
-        )}
-      </div>
+            ? '正在连接主机上的 CPI…'
+            : '请确认主机已联网，并运行 CPI。首次加载或服务离线时，选择主机平台后加载内置 CPI。'}
+        </p>
+      )}
+      {!checking && status?.state !== 'online' && (
+        <div className="cpm-form-field">
+          <span className="cpm-field-label">加载到</span>
+          <fieldset className="cpi-platform" disabled={busy}>
+            <SegmentedControl
+              label="加载 CPI 的主机平台"
+              value={platform}
+              onChange={onDetectedPlatform}
+              options={[
+                { value: 'ps4', label: 'PS4' },
+                { value: 'ps5', label: 'PS5' },
+              ]}
+            />
+          </fieldset>
+          <p className="cpm-field-hint source-mode-hint">连接成功后自动识别平台；此选项用于选择正确的 CPI 文件。</p>
+        </div>
+      )}
+      {!checking && status?.state !== 'offline' && status?.message && (
+        <p className="cpi-description" role="status">
+          {status.message}
+        </p>
+      )}
+      <Disclosure
+        key={checking ? 'checking' : status?.state}
+        title="加载与维护"
+        className="cpi-maintenance"
+        defaultOpen={!checking && status?.state !== 'online'}
+      >
+        <div className="cpi-maintenance-content">
+          <p className="cpi-description">
+            内置 CPI {bundle?.version || (bundleError ? '读取失败' : '读取中…')} · {platform.toUpperCase()}
+          </p>
+          {bundleError && <Alert>{bundleError}</Alert>}
+          <FormField
+            label={platform === 'ps5' ? 'ELF loader 端口' : 'GoldHEN Payload Server 端口'}
+            hint="请先在主机上开启对应的加载服务。"
+          >
+            <Input
+              type="number"
+              min={1}
+              max={65535}
+              value={port}
+              onChange={setPort}
+              disabled={busy}
+              placeholder={platform === 'ps5' ? '9021' : '9090'}
+            />
+          </FormField>
+          <div className="cpi-manager-actions">
+            <Button loading={busy} disabled={!bundle || checking} onClick={() => setConfirmation(true)}>
+              {status?.state === 'online' ? '重新加载 CPI' : '加载 CPI'}
+            </Button>
+            {platform === 'ps5' && status?.state === 'online' && status.canShutdown && (
+              <Button disabled={busy} onClick={() => setStopConfirmation(true)}>
+                停止 CPI
+              </Button>
+            )}
+            {bundle && (
+              <a href={`./cpi/rpi-payload-${platform}.elf`} download={`rpi-payload-${platform}.elf`}>
+                下载 ELF
+              </a>
+            )}
+          </div>
+        </div>
+      </Disclosure>
       {message && (
         <Alert>
           <span role="status">{message}</span>
@@ -196,7 +260,7 @@ export function CPIManager({
         title="重新加载内置 CPI？"
         description={
           platform === 'ps5'
-            ? `将通过 ${new URL(host).hostname}:${port} 发送 PS5 CPI ${bundle?.version || ''}。请等待安装任务完成。在线新版 CPI 会先退出。`
+            ? `将通过 ${new URL(host).hostname}:${port} 发送 PS5 CPI ${bundle?.version || ''}。请先开启 ELF loader，并等待安装任务完成。在线新版 CPI 会先退出。`
             : `将向 ${new URL(host).hostname}:${port} 发送 CPI ${bundle?.version || ''}。请先开启 GoldHEN Payload Server，并等待安装任务完成。在线 CPI 会先退出；若显示未连接，请先确认旧 CPI 已停止。此操作也会更新 /data/payloads 中的 CPI 启动文件。`
         }
         confirmText="重装 CPI"

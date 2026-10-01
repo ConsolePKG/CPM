@@ -7,8 +7,8 @@ export const Hosts = () => {
     <div className={styles.page}>
       <div className={styles.intro}>
         <div>
-          <span className={styles.eyebrow}>Connections</span>
-          <p>Manage the game source and PS4 endpoint used by the library.</p>
+          <span className={styles.eyebrow}>连接管理</span>
+          <p>管理游戏文件来源与 PS4 / PS5 安装主机。</p>
         </div>
       </div>
       <div className={styles.sections}>

@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid'
 import { useEffect, useState } from 'react'
-import { Button, Drawer, FormField, Input, Select, Switch, SegmentedControl, Notification } from '@/design-system'
+import { Button, Drawer, FormField, Input, Select, SegmentedControl, Notification } from '@/design-system'
 import { useContainer } from '@/store/container'
 import { FileServerType } from '@/types'
 import { validateServerUrl } from '../validation'
@@ -27,7 +27,7 @@ const defaults = (): FormData => ({
   type: window.electron ? FileServerType.StaticFileServer : FileServerType.WebDAV,
   url: '',
   port: 1090,
-  recursiveQuery: Boolean(window.electron),
+  recursiveQuery: true,
 })
 export function FileServerFormModal({ data, visible, onOk, onCancel }: Props) {
   const {
@@ -72,6 +72,7 @@ export function FileServerFormModal({ data, visible, onOk, onCancel }: Props) {
   const submit = () => {
     const next = {
       ...value,
+      recursiveQuery: true,
       id: value.id || nanoid(),
       alias: value.alias?.trim(),
       url: value.url.trim().replace(/\/$/, ''),
@@ -122,55 +123,68 @@ export function FileServerFormModal({ data, visible, onOk, onCancel }: Props) {
         }}
       >
         {!data?.id && (
-          <SegmentedControl
-            label="操作"
-            value={value.type === FileServerType.LibraryService && !value.createService ? 'connect' : 'create'}
-            onChange={(mode) =>
-              patch(
-                mode === 'connect'
-                  ? { type: FileServerType.LibraryService, createService: false }
-                  : {
-                      type: window.electron ? FileServerType.StaticFileServer : FileServerType.WebDAV,
-                      createService: false,
-                    },
-              )
-            }
-            options={[
-              { value: 'create', label: '创建自己的资源库' },
-              { value: 'connect', label: '连接已有资源库' },
-            ]}
-          />
+          <div className="cpm-form-field">
+            <span className="cpm-field-label">文件来源</span>
+            <SegmentedControl
+              label="文件来源"
+              value={value.type}
+              onChange={(type) => patch({ type, createService: false })}
+              options={[
+                {
+                  value: window.electron ? FileServerType.StaticFileServer : FileServerType.BrowserFiles,
+                  label: '本地文件夹',
+                },
+                { value: FileServerType.WebDAV, label: 'WebDAV' },
+                { value: FileServerType.LibraryService, label: '资源库服务' },
+              ]}
+            />
+          </div>
         )}
-        {!data?.id && (value.type !== FileServerType.LibraryService || value.createService) && (
-          <SegmentedControl
-            label="运行位置与来源"
-            value={value.createService ? 'node' : value.type}
-            onChange={(type) =>
-              patch(
-                type === 'node'
-                  ? {
-                      type: FileServerType.LibraryService,
-                      createService: true,
-                      sourceType: 'folder',
-                      sourceRoot: '/games',
-                    }
-                  : { type: type as FileServerType, createService: false, recursiveQuery: true },
-              )
-            }
-            options={[
-              { value: 'node', label: 'NAS / Node 服务' },
-              ...(window.electron
-                ? [{ value: FileServerType.StaticFileServer, label: '创建文件夹库' }]
-                : [{ value: FileServerType.BrowserFiles, label: '浏览器文件夹库' }]),
-              { value: FileServerType.WebDAV, label: '创建 WebDAV 库' },
-            ]}
-          />
+        <p className="source-description">
+          {local
+            ? '读取电脑上的游戏文件，并提供主机可访问的下载链接。'
+            : value.type === FileServerType.BrowserFiles
+              ? '在浏览器中选择文件夹，读取其中的游戏文件。'
+              : value.type === FileServerType.WebDAV
+                ? '连接 NAS 或网盘的 WebDAV，读取其中的游戏文件。'
+                : '连接已部署的资源库服务，或打开别人分享的资源库。'}
+        </p>
+        {!data?.id && value.type === FileServerType.LibraryService && (
+          <div className="cpm-form-field">
+            <span className="cpm-field-label">连接方式</span>
+            <SegmentedControl
+              label="连接方式"
+              value={value.createService ? 'create' : 'connect'}
+              onChange={(mode) =>
+                patch({
+                  createService: mode === 'create',
+                  sourceType: value.sourceType || 'folder',
+                  sourceRoot: value.sourceRoot || '/games',
+                })
+              }
+              options={[
+                { value: 'connect', label: '连接已有资源库' },
+                { value: 'create', label: '在服务中创建资源库' },
+              ]}
+            />
+            <p className="cpm-field-hint source-mode-hint">
+              {value.createService ? '需要管理员令牌，在该服务中添加新的文件来源。' : '使用已有资源库或只读分享链接。'}
+            </p>
+          </div>
         )}
-        <FormField label="别名">
-          <Input value={value.alias || ''} onChange={(alias) => patch({ alias })} placeholder="NAS / PS4" />
+        <FormField label="名称（可选）">
+          <Input
+            value={value.alias || ''}
+            onChange={(alias) => patch({ alias })}
+            placeholder="例如：客厅 NAS、电脑游戏文件"
+          />
         </FormField>
         {!local && value.type !== FileServerType.BrowserFiles && (
-          <FormField label="服务器地址" error={errors.url} hint="包含协议，例如 https://nas.example.com:5006">
+          <FormField
+            label={value.type === FileServerType.LibraryService ? '服务地址或分享链接' : 'WebDAV 地址'}
+            error={errors.url}
+            hint="包含协议，例如 https://nas.example.com:5006"
+          >
             <Input autoFocus value={value.url} onChange={(url) => patch({ url })} placeholder="https://" required />
           </FormField>
         )}
@@ -223,11 +237,11 @@ export function FileServerFormModal({ data, visible, onOk, onCancel }: Props) {
           </>
         )}
         {value.type === FileServerType.BrowserFiles && (
-          <p>授权选择文件夹后本地解析。重新打开页面需要再次授权；发送安装需桌面/NAS 托管。</p>
+          <p>重新打开页面需要再次选择文件夹。要发送安装，请使用桌面应用或资源库服务。</p>
         )}
         {local ? (
           <>
-            <FormField label="网络接口" hint="选择 PS4 可访问的局域网接口。">
+            <FormField label="网络接口" hint="选择 PS4 / PS5 主机可访问的局域网地址。">
               <Select
                 label="网络接口"
                 value={value.iface || ''}
@@ -281,13 +295,6 @@ export function FileServerFormModal({ data, visible, onOk, onCancel }: Props) {
             </>
           )
         )}
-        <FormField label="递归查询" hint="资源库统一递归索引来源；WebDAV 使用逐目录枚举，不要求 Depth Infinity。">
-          <Switch
-            label="递归查询"
-            checked={Boolean(value.recursiveQuery)}
-            onChange={(recursiveQuery) => patch({ recursiveQuery })}
-          />
-        </FormField>
       </form>
     </Drawer>
   )

@@ -32,20 +32,17 @@ export function PS4Discovery({ onSelect }: { onSelect: (name: string, address: s
     }
   }, [search])
   return (
-    <section className="ps4-discovery" aria-label="局域网主机" aria-busy={loading}>
+    <section className="ps4-discovery" aria-label="自动发现 PS4" aria-busy={loading}>
       <div className="ps4-discovery-heading">
-        <strong>局域网主机</strong>
+        <strong>自动发现 PS4</strong>
         <Button variant="text" loading={loading} icon={<RefreshCw size={16} />} onClick={() => void search()}>
           {loading ? '搜索中…' : '重新搜索'}
         </Button>
       </div>
+      <p>自动发现暂支持 PS4。PS5 请在下方填写 IP 与 CPI 端口，连接后会自动识别。</p>
       <div role="status">
         {error && <p>{error}</p>}
-        {!loading && !error && !hosts.length && (
-          <p>
-            未发现 PS4。请确认电脑与主机在同一局域网，并在 PS4 开启“设定 → 网络 → 与互联网连接”。也可以在下方手动填写。
-          </p>
-        )}
+        {!loading && !error && !hosts.length && <p>未发现 PS4。请确认主机已联网，且与电脑在同一局域网。</p>}
       </div>
       {hosts.map((host) => (
         <div className="ps4-discovery-host" key={host.address}>

@@ -46,7 +46,7 @@ export function PS4Host() {
           />
         ))}
       </div>
-      {!ps4Hosts.length && <Empty description="添加 PS4 主机后，即可发送安装任务。" />}
+      {!ps4Hosts.length && <Empty description="添加 PS4 / PS5 主机后，即可发送安装任务。" />}
       <ConfirmDialog
         visible={Boolean(deleting)}
         title="删除主机配置？"

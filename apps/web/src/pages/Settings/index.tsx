@@ -26,8 +26,8 @@ const sections = [
   {
     title: '连接管理',
     items: [
-      { id: 'servers', title: '文件服务器' },
-      { id: 'hosts', title: 'PS4 主机' },
+      { id: 'servers', title: '资源库连接' },
+      { id: 'hosts', title: 'PlayStation 主机' },
     ],
   },
   {
@@ -145,7 +145,11 @@ export const Settings = () => {
                 ? '调整游戏内容的组织方式与打开行为。'
                 : section === 'general'
                   ? '让 CPM 适合你的使用习惯。'
-                  : '管理应用偏好与连接。'}
+                  : section === 'servers'
+                    ? '连接存放游戏文件的资源库。'
+                    : section === 'hosts'
+                      ? '管理 PS4 / PS5 安装目标。'
+                      : '管理应用偏好与连接。'}
             </Dialog.Description>
             {section === 'general' && (
               <>
@@ -176,7 +180,7 @@ export const Settings = () => {
               <>
                 <SettingRow
                   title="聚合模式"
-                  description="将补丁与附加内容关联到本体，不单独出现在列表中。可在游戏详情查看，建议搭配文件服务器的递归查询。"
+                  description="将补丁与附加内容关联到本体，不单独出现在列表中。可在游戏详情查看；资源库会自动索引子文件夹。"
                 >
                   <Switch
                     label="聚合模式"

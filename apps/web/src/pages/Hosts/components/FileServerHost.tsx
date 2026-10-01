@@ -42,7 +42,7 @@ export function FileServerHost() {
   return (
     <section className="hosts-section">
       <div className="hosts-heading">
-        <p>自己的文件夹/WebDAV 库，或别人分享的只读资源库。</p>
+        <p>资源库提供游戏文件，可连接本地文件夹、WebDAV 或资源库服务。</p>
         <Button type="primary" icon={<Plus />} disabled={pending} onClick={() => open()}>
           添加资源库
         </Button>
@@ -54,10 +54,14 @@ export function FileServerHost() {
             title={host.alias || host.url || '本地文件夹'}
             subTitle={
               host.type === FileServerType.WebDAV
-                ? '浏览器 WebDAV 库'
+                ? window.electron?.createWebDAVLibrary
+                  ? 'WebDAV · 主机直连'
+                  : 'WebDAV'
                 : host.type === FileServerType.BrowserFiles
-                  ? '浏览器文件夹库'
-                  : '资源库服务'
+                  ? '本地文件夹 · 浏览器'
+                  : host.type === FileServerType.StaticFileServer && host.directoryPath
+                    ? '本地文件夹'
+                    : '资源库服务'
             }
             meta={host.type === FileServerType.WebDAV ? host.url : host.directoryPath || host.url}
             isActive={host.id === curFileServerHostId}
@@ -112,7 +116,7 @@ export function FileServerHost() {
           />
         ))}
       </div>
-      {!fileServerHosts.length && <Empty description="创建或连接资源库，开始浏览游戏。" />}
+      {!fileServerHosts.length && <Empty description="添加资源库连接，为游戏库提供文件来源。" />}
       {shareLink && (
         <p>
           分享链接（持有者可浏览和下载）：

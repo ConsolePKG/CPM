@@ -1,7 +1,6 @@
 import { nanoid } from 'nanoid'
 import { useEffect, useState } from 'react'
 import { Button, Drawer, FormField, Input, Notification, Alert } from '@/design-system'
-import { RPILink } from '@/components/WebAlert'
 import { useContainer } from '@/store/container'
 import { validateConsoleAddress } from '../validation'
 import { PS4Discovery } from './PS4Discovery'
@@ -106,16 +105,6 @@ export function PS4HostFormModal({ data, visible, onOk, onCancel }: Props) {
         <FormField label="别名">
           <Input disabled={reinstalling} value={alias} onChange={setAlias} placeholder="PlayStation · 客厅" />
         </FormField>
-        <FormField label="主机类型">
-          <select
-            value={platform}
-            disabled={reinstalling}
-            onChange={(event) => setPlatform(event.target.value as 'ps4' | 'ps5')}
-          >
-            <option value="ps4">PS4</option>
-            <option value="ps5">PS5</option>
-          </select>
-        </FormField>
         <FormField label="主机地址" error={error} hint="请填写主机 IP 与 CPI 端口，常用端口为 12801。">
           <Input
             disabled={reinstalling}
@@ -128,12 +117,16 @@ export function PS4HostFormModal({ data, visible, onOk, onCancel }: Props) {
           />
         </FormField>
         {visible && normalizedHost && (
-          <CPIManager host={normalizedHost} platform={platform} onBusyChange={setReinstalling} onInstalled={setUrl} />
+          <CPIManager
+            host={normalizedHost}
+            platform={platform}
+            onDetectedPlatform={setPlatform}
+            onBusyChange={setReinstalling}
+            onInstalled={setUrl}
+          />
         )}
-        {!data?.id && platform === 'ps4' && (
-          <Alert>
-            主机上需要运行 Remote Package Installer。建议使用支持中文和空格路径的 <RPILink />。
-          </Alert>
+        {!normalizedHost && (
+          <Alert>PS4 / PS5 需要运行 CPI 安装服务。填写地址后会自动识别主机；首次加载 CPI 时可手动选择平台。</Alert>
         )}
       </form>
     </Drawer>
