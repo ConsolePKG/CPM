@@ -18,7 +18,7 @@
   "main": "dist/main/index.js",
   "scripts": {
     "start": "electron . --remote-debugging-port=9223 --inspect=9224",
-    "start:dev": "wait-on http://localhost:5173 dist/main/index.js && cross-env NODE_ENV=development RENDERER_DEV_PORT=5173 electronmon .",
+    "start:dev": "node scripts/ensureNative.cjs && wait-on http://localhost:5173 dist/main/index.js && cross-env NODE_ENV=development RENDERER_DEV_PORT=5173 electronmon .",
     "dev:main": "cross-env NODE_ENV=development rsbuild build --watch",
     "build": "cross-env NODE_ENV=production rsbuild build && pnpm run copyRenderer",
     "copyRenderer": "node scripts/copyRenderer.mjs",
