@@ -1,6 +1,7 @@
 import { Ps4PkgCategory } from '@njzy/ps4-pkg-info/web'
 import type { FileStat } from '@/types'
 import { formatPkgName } from '@/utils'
+import { isSystemMetadataPath } from '@consolepkg/library'
 export type ContentFilter = 'all' | 'base' | 'patch' | 'addon'
 export type LibrarySort = 'name' | 'recent' | 'size'
 export const categoryOf = (file: FileStat): ContentFilter => {
@@ -25,6 +26,8 @@ export function filterLibrary(
   return files
     .filter(
       (file) =>
+        !isSystemMetadataPath(file.filename) &&
+        !isSystemMetadataPath(file.basename) &&
         (!text ||
           file.basename.toLocaleLowerCase().includes(text) ||
           (file.resourceMetadata?.title || file.paramSfo?.TITLE)?.toLocaleLowerCase().includes(text)) &&

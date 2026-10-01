@@ -48,6 +48,12 @@ export interface IElectronIpcMainHandles {
   getAvailableInterfaces: () => Promise<{ ipv4: string }[] | { errorMessage?: string } | null>;
   discoverPS4Hosts: () => Promise<PS4DiscoveryResult>;
   sendPS5Elf: (params: { host: string; port: number; bytes: Uint8Array }) => Promise<void>;
+  createWebDAVLibrary: (params: { connectionId: string }) => Promise<{
+    url?: string;
+    token?: string;
+    libraryId?: string;
+    errorMessage?: string;
+  }>;
   openDevTools: () => void;
   openAppLog: () => void;
   checkUpdate: () => void;

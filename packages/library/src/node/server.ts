@@ -334,7 +334,21 @@ export async function createLibraryServer(options: Options) {
           return
         }
         if (route[2] === 'download' && request.method === 'POST') {
-          const base = configuredBase?.href.replace(/\/$/, '')
+          // Owners can give the console a direct source URL. Shared downloads
+          // keep scoped, revocable tokens and never expose upstream credentials.
+          if (admin) {
+            const direct = await engine.download(file.id)
+            if (direct.url) {
+              json(direct)
+              return
+            }
+          }
+          const external = configuredBase && new URL(configuredBase.href)
+          if (external?.port === '0') {
+            const address = server.address()
+            if (address && typeof address !== 'string') external.port = String(address.port)
+          }
+          const base = external?.href.replace(/\/$/, '')
           if (!base) {
             json({ fileVersion: file.fileVersion, unavailable: 'Configure a console-reachable external base URL' })
             return

@@ -12,6 +12,50 @@ import { WebDAVSource } from '../src/webdav'
 import { packageFixture } from './fixtures'
 
 describe('portable library', () => {
+  it('skips sidecar resources from every adapter and omits previously indexed metadata', async () => {
+    const store = new MemoryStore()
+    const engine = await new LibraryEngine(
+      store,
+      {
+        version: 'test',
+        parse: async () => ({
+          state: 'unsupported',
+          metadata: { platform: 'unknown', format: 'unknown', kind: 'unknown', raw: {} },
+        }),
+      },
+      (config) => ({
+        config,
+        entries: async function* () {
+          for (const path of ['._hello_world', '._game.pkg', '__MACOSX/game.pkg', '@eaDir/game.pkg', 'game.pkg'])
+            yield { path, name: path, size: 4, version: '1' }
+        },
+        stat: async (path) => ({ path, name: path, size: 4, version: '1' }),
+        open: async () => ({ readRange: async () => new Uint8Array(4) }),
+      }),
+    ).initialize()
+    try {
+      const library = await engine.createLibrary('Library', [{ id: 'source', type: 'folder', name: 'Source' }])
+      await engine.scan(library.id)
+      await engine.idle()
+      const resources = (await engine.listFiles(library.id)).items
+      expect(resources.map((file) => file.path)).toEqual(['game.pkg'])
+      await store.files([{ ...resources[0], id: 'old-sidecar', path: '._old.pkg', name: '._old.pkg' }], 100)
+      const reopened = await new LibraryEngine(store, packageParser, (config) => ({
+        config,
+        entries: async function* () {},
+        stat: async (path) => ({ path, name: path, size: 4 }),
+        open: async () => ({ readRange: async () => new Uint8Array(4) }),
+      })).initialize()
+      try {
+        expect((await reopened.listFiles(library.id)).items).toHaveLength(1)
+        expect((await reopened.listGames(library.id)).items).toHaveLength(1)
+      } finally {
+        await reopened.close()
+      }
+    } finally {
+      await engine.close()
+    }
+  })
   it('bounds parsing across libraries and publishes discovered files before all parsing completes', async () => {
     let active = 0,
       peak = 0

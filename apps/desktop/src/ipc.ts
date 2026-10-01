@@ -40,6 +40,21 @@ export class Ipc {
     this.initWebDavServer()
     ipcMainHandle('discoverPS4Hosts', () => discoverPS4Hosts())
     ipcMainHandle('sendPS5Elf', (_, params) => sendPS5Elf(params))
+    ipcMainHandle('createWebDAVLibrary', async (_, { connectionId }) => {
+      const host = storeManager.configStore.get('fileServerHosts').find((value) => value.id === connectionId)
+      if (!host || (host as { type?: string }).type !== 'WebDAV') throw new Error('请重新连接 WebDAV 资源库')
+      return staticServerManager.createWebDAVLibrary({
+        source: {
+          id: host.id,
+          name: host.alias || 'WebDAV',
+          type: 'webdav',
+          url: host.url,
+          username: String(host.options?.username || ''),
+          password: String(host.options?.password || ''),
+          headers: host.options?.headers,
+        },
+      })
+    })
 
     ipcMainHandle('getAppInfo', async () => {
       const version = app.getVersion()

@@ -17,6 +17,8 @@ import {
   type SourceConfig,
 } from './types'
 
+import { isSystemMetadataPath } from './paths'
+
 export type SourceFactory = (config: SourceConfig) => SourceAdapter | Promise<SourceAdapter>
 export class LibraryEngine implements LibraryClient {
   private libraries = new Map<string, Library>()
@@ -133,6 +135,7 @@ export class LibraryEngine implements LibraryClient {
         .filter(
           (file) =>
             file.libraryId === libraryId &&
+            !isSystemMetadataPath(file.path) &&
             (!query.sourceId || file.sourceId === query.sourceId) &&
             (!search || `${file.name} ${file.metadata?.title || ''}`.toLowerCase().includes(search)),
         )
@@ -150,7 +153,12 @@ export class LibraryEngine implements LibraryClient {
     this.requireLibrary(libraryId)
     const groups = new Map<string, GameEntry>()
     for (const file of this.files.values()) {
-      if (file.libraryId !== libraryId || !file.available || (query.sourceId && query.sourceId !== file.sourceId))
+      if (
+        file.libraryId !== libraryId ||
+        !file.available ||
+        isSystemMetadataPath(file.path) ||
+        (query.sourceId && query.sourceId !== file.sourceId)
+      )
         continue
       const metadata = file.metadata
       const key = metadata?.titleId
@@ -356,6 +364,7 @@ export class LibraryEngine implements LibraryClient {
           this.sources.set(config.id, source)
           for await (const entry of source.entries(this.lifetime.signal)) {
             if (this.closed) break
+            if (isSystemMetadataPath(entry.path)) continue
             seen.add(entry.path)
             const previous = this.files.get(this.fileKeys.get(`${config.id}:${entry.path}`) || '')
             const version = fileVersion(entry)

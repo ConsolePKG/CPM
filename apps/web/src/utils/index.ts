@@ -1,6 +1,7 @@
 import { ConfigStore } from 'common/types/configStore'
 
 import { FileStat } from '@/types'
+import { isSystemMetadataPath } from '@consolepkg/library'
 
 export const formatFileSize = (size: number) => {
   const KB = 1024
@@ -47,6 +48,7 @@ export const sortServerFiles = (files: FileStat[]): FileStat[] => {
   return (
     files
       .filter((item) => {
+        if (isSystemMetadataPath(item.filename) || isSystemMetadataPath(item.basename)) return false
         if (item.type === 'directory' && !blackList.includes(item.basename)) {
           return true
         } else if (item.type === 'file' && item.basename.endsWith('.pkg')) {

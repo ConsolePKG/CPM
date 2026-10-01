@@ -1,6 +1,7 @@
 import { createClient, type WebDAVClient } from 'webdav/web'
 import { Buffer } from 'buffer'
 import { boundedSignal } from './abort'
+import { isSystemMetadataPath } from './paths'
 import { LibraryError, type ByteReader, type SourceAdapter, type SourceConfig, type SourceEntry } from './types'
 
 export class WebDAVSource implements SourceAdapter {
@@ -12,10 +13,18 @@ export class WebDAVSource implements SourceAdapter {
     if (!config.url || !['http:', 'https:'].includes(new URL(config.url).protocol))
       throw new LibraryError('invalid_source', 'WebDAV HTTP address required')
     this.client = createClient(config.url, {
-      username: config.username,
-      password: config.password,
-      headers: config.headers,
+      headers: this.headers(),
     })
+  }
+  private headers() {
+    return {
+      ...this.config.headers,
+      ...(this.config.username || this.config.password
+        ? {
+            Authorization: `Basic ${Buffer.from(`${this.config.username || ''}:${this.config.password || ''}`).toString('base64')}`,
+          }
+        : {}),
+    }
   }
   private normalize(entry: any): SourceEntry {
     return { path: entry.filename, name: entry.basename, size: entry.size, modified: entry.lastmod, etag: entry.etag }
@@ -32,6 +41,7 @@ export class WebDAVSource implements SourceAdapter {
         bounded.dispose()
       }
       for (const entry of entries) {
+        if (isSystemMetadataPath(entry.filename)) continue
         if (entry.type === 'directory') pending.push(entry.filename)
         else if (/\.(pkg|nsp|xci|cia|3ds)$/i.test(entry.basename)) yield this.normalize(entry)
       }
@@ -46,21 +56,16 @@ export class WebDAVSource implements SourceAdapter {
     }
   }
   private link(path: string) {
-    const address = new URL(this.client.getFileDownloadLink(path))
+    // Build the path without the client's raw userinfo. URL credentials are
+    // encoded separately for console downloads; metadata fetches use headers.
+    const address = new URL(createClient(this.config.url!).getFileDownloadLink(path))
     address.username = ''
     address.password = ''
     return address.href
   }
   async open(path: string): Promise<ByteReader> {
     const address = this.link(path)
-    const headers = {
-      ...this.config.headers,
-      ...(this.config.username
-        ? {
-            Authorization: `Basic ${Buffer.from(`${this.config.username}:${this.config.password || ''}`).toString('base64')}`,
-          }
-        : {}),
-    }
+    const headers = this.headers()
     return {
       readRange: async (offset, length, signal) => {
         if (
@@ -126,7 +131,10 @@ export class WebDAVSource implements SourceAdapter {
     }
   }
   async download(path: string) {
-    if (this.config.username || this.config.password || Object.keys(this.config.headers || {}).length) return undefined
-    return this.link(path)
+    if (Object.keys(this.config.headers || {}).length) return undefined
+    const address = new URL(this.link(path))
+    address.username = encodeURIComponent(this.config.username || '')
+    address.password = encodeURIComponent(this.config.password || '')
+    return address.href
   }
 }

@@ -1,12 +1,12 @@
 import { describe, expect, it } from '@rstest/core'
-import { createServer } from 'node:http'
+import { createServer, get } from 'node:http'
 import { WebDAVSource } from '../src/webdav'
 import { packageParser } from '../src/parser'
 import { BrowserFilesSource } from '../src/browser'
 import { packageFixture } from './fixtures'
 
 describe('authenticated WebDAV byte source', () => {
-  it('enumerates and parses the same fixture as browser files, without exposing authentication in download URLs', async () => {
+  it('indexes with header authentication and lets a console download directly using URL credentials', async () => {
     const bytes = packageFixture()
     const authorization = `Basic ${Buffer.from('user:secret').toString('base64')}`
     const server = createServer((request, response) => {
@@ -53,13 +53,53 @@ describe('authenticated WebDAV byte source', () => {
         new Map([['game.pkg', new File([bytes], 'game.pkg')]]),
       ).open('game.pkg')
       expect(await packageParser.parse(await source.open('/game.pkg'))).toEqual(await packageParser.parse(browser))
-      expect(await source.download('/game.pkg')).toBeUndefined()
+      const download = await source.download('/game.pkg')
+      expect(download).toBe(address.replace('http://', 'http://user:secret@') + '/game.pkg')
+      const received = await new Promise<Buffer>((resolve, reject) => {
+        get(download!, { headers: { Range: 'bytes=0-3' } }, (response) => {
+          expect(response.statusCode).toBe(206)
+          const chunks: Buffer[] = []
+          response.on('data', (chunk) => chunks.push(chunk))
+          response.on('end', () => resolve(Buffer.concat(chunks)))
+          response.on('error', reject)
+        }).on('error', reject)
+      })
+      expect(received).toEqual(bytes.subarray(0, 4))
       const rejected = new WebDAVSource({ id: 'bad', name: 'bad', type: 'webdav', url: address })
       await expect((await rejected.open('/game.pkg')).readRange(0, 4)).rejects.toMatchObject({ code: 'source_auth' })
     } finally {
       server.closeAllConnections()
       await new Promise<void>((resolve) => server.close(() => resolve()))
     }
+  })
+  it('encodes credentials and file names independently, including literal percent signs', async () => {
+    const username = 'user @%20'
+    const password = 'p:@/?#%20密'
+    const source = new WebDAVSource({
+      id: 'dav',
+      name: 'dav',
+      type: 'webdav',
+      url: 'https://nas.test:5006/dav',
+      username,
+      password,
+    })
+    const address = new URL((await source.download('/游戏 #?%.pkg'))!)
+    expect(address.host).toBe('nas.test:5006')
+    expect(decodeURIComponent(address.username)).toBe(username)
+    expect(decodeURIComponent(address.password)).toBe(password)
+    expect(decodeURIComponent(address.pathname)).toBe('/dav/游戏 #?%.pkg')
+    expect(address.search).toBe('')
+    expect(address.hash).toBe('')
+    const publicSource = new WebDAVSource({ id: 'dav', name: 'dav', type: 'webdav', url: 'http://nas.test/dav' })
+    expect(await publicSource.download('/game.pkg')).toBe('http://nas.test/dav/game.pkg')
+    const customSource = new WebDAVSource({
+      id: 'dav',
+      name: 'dav',
+      type: 'webdav',
+      url: 'http://nas.test/dav',
+      headers: { Authorization: 'Bearer private' },
+    })
+    expect(await customSource.download('/game.pkg')).toBeUndefined()
   })
   it('rejects mismatched Content-Range even when the body has the requested size', async () => {
     const source = new WebDAVSource(

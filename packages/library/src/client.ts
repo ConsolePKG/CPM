@@ -38,6 +38,12 @@ export class RemoteLibraryClient implements LibraryClient {
         bytes: new Uint8Array(await response.arrayBuffer()),
         contentType: response.headers.get('content-type') || 'application/octet-stream',
       }
+    } catch (error) {
+      if (error instanceof LibraryError) throw error
+      throw new LibraryError(
+        controller.signal.aborted ? 'timeout' : 'network_error',
+        controller.signal.aborted ? '资源库请求超时，请检查资源库服务' : '无法读取资源库响应，请检查资源库连接和服务',
+      )
     } finally {
       clearTimeout(timer)
     }

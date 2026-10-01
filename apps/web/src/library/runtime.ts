@@ -1,4 +1,10 @@
-import { RemoteLibraryClient, type GameEntry, type LibraryClient, type ResourceFile } from '@consolepkg/library'
+import {
+  RemoteLibraryClient,
+  LibraryError,
+  type GameEntry,
+  type LibraryClient,
+  type ResourceFile,
+} from '@consolepkg/library'
 import { createBrowserLibrary, workerParser } from '@consolepkg/library/browser'
 import { FileServerType, type FileServerHost, type FileStat } from '@/types'
 import { getInitConfigFromStore } from '@/utils'
@@ -45,7 +51,12 @@ async function openLibrary(host: FileServerHost): Promise<Connection> {
   let client: LibraryClient
   let libraryId: string
   let sessionOnly = false
-  if (host.type === FileServerType.WebDAV || host.type === FileServerType.BrowserFiles) {
+  if (host.type === FileServerType.WebDAV && window.electron?.createWebDAVLibrary) {
+    const published = await window.electron.createWebDAVLibrary({ connectionId: host.id })
+    if (!published.url || !published.libraryId) throw new Error(published.errorMessage || '启动 WebDAV 资源库失败')
+    client = new RemoteLibraryClient(published.url, published.token)
+    libraryId = published.libraryId
+  } else if (host.type === FileServerType.WebDAV || host.type === FileServerType.BrowserFiles) {
     const local = await runtime()
     sessionOnly = local.sessionOnly
     client = local.engine
@@ -123,9 +134,23 @@ export async function resourceDownload(file: FileStat) {
   if (!file.resourceId || !file.libraryConnectionId) return file.downloadUrl
   const connection = clients.get(file.libraryConnectionId)
   if (!connection) throw new Error('请重新连接资源库')
-  const download = await connection.client.download(file.resourceId)
-  if (!download.url) throw new Error(download.unavailable || '文件没有主机可访问的下载地址')
-  return download.url
+  const download = await connection.client.download(file.resourceId).catch((error) => {
+    if (error instanceof LibraryError) {
+      if (error.status === 401 || error.status === 403) throw new Error('资源库认证失败或分享已撤销，请重新连接资源库')
+      if (error.status === 404) throw new Error('原资源文件已不存在，请重新扫描资源库')
+      if (error.status === 409) throw new Error('资源文件已变化，请刷新资源库后重新发送')
+    }
+    throw new Error(`无法生成资源库下载地址：${(error as Error).message}`)
+  })
+  if (download.url) return download.url
+  const host = (getInitConfigFromStore('fileServerHosts', []) as FileServerHost[]).find(
+    (host) => host.id === file.libraryConnectionId,
+  )
+  throw new Error(
+    host?.type === FileServerType.WebDAV
+      ? '此 WebDAV 需要额外请求头，请通过桌面/NAS 资源库提供下载地址'
+      : '浏览器本地文件需要通过桌面/NAS 资源库提供主机可访问的下载地址',
+  )
 }
 export async function libraryResource(file: FileStat, kind: string, key?: string) {
   const connection = clients.get(file.libraryConnectionId || '')
@@ -141,12 +166,82 @@ export async function libraryCover(file: FileStat) {
     )
     if (!host) return undefined
     client =
-      host.type === FileServerType.BrowserFiles || host.type === FileServerType.WebDAV
+      host.type === FileServerType.BrowserFiles ||
+      (host.type === FileServerType.WebDAV && !window.electron?.createWebDAVLibrary)
         ? (await runtime()).engine
-        : new RemoteLibraryClient(host.url, host.token)
+        : host.type === FileServerType.WebDAV
+          ? (await connectLibrary(host)).client
+          : new RemoteLibraryClient(host.url, host.token)
   }
   const coverId = file.coverAssetId || (await client.getFile(file.resourceId)).coverId
   return coverId ? client.asset(coverId) : undefined
+}
+function presentFile(file: ResourceFile, libraryId: string, connectionId: string): FileStat {
+  return {
+    filename: file.path || file.id,
+    basename: file.name,
+    size: file.size,
+    type: 'file',
+    lastmod: file.modified || '',
+    etag: file.etag || '',
+    resourceId: file.id,
+    libraryId,
+    libraryConnectionId: connectionId,
+    resourcePlatform: file.metadata?.platform,
+    resourceKind: file.metadata?.kind,
+    parseState: file.state,
+    resourceMetadata: file.metadata,
+    fileVersion: file.fileVersion,
+    coverAssetId: file.coverId,
+    parseMessage: file.message,
+    paramSfo: file.metadata?.platform === 'ps4' ? (file.metadata.raw as any) : undefined,
+  }
+}
+export async function resolveLibraryFile(original: FileStat | undefined, contentId?: string, exactVersion = false) {
+  const hosts = (getInitConfigFromStore('fileServerHosts', []) as FileServerHost[])
+    .filter((host) => host.type !== FileServerType.BrowserFiles || clients.has(host.id))
+    .sort(
+      (first, second) =>
+        Number(second.id === original?.libraryConnectionId) - Number(first.id === original?.libraryConnectionId),
+    )
+  for (const host of hosts) {
+    try {
+      const connection = await connectLibrary(host)
+      if (original?.libraryId && connection.libraryId !== original.libraryId) continue
+      if (
+        original?.resourceId &&
+        (original.libraryId || !original.libraryConnectionId || original.libraryConnectionId === host.id)
+      ) {
+        const file = await connection.client.getFile(original.resourceId)
+        if (
+          file.available &&
+          (!original.libraryId || file.libraryId === original.libraryId) &&
+          (!exactVersion || !original.fileVersion || file.fileVersion === original.fileVersion) &&
+          (!contentId || file.metadata?.contentId === contentId)
+        )
+          return presentFile(file, connection.libraryId, host.id)
+      }
+      if (original?.resourceId || !contentId || !['base', 'patch', 'dlc'].includes(original?.resourceKind || ''))
+        continue
+      const cached = [...connection.files.values()].find(
+        (file) =>
+          file.available && file.metadata?.contentId === contentId && file.metadata?.kind === original?.resourceKind,
+      )
+      if (cached) return presentFile(cached, connection.libraryId, host.id)
+      let cursor: string | undefined
+      do {
+        const page = await connection.client.listFiles(connection.libraryId, { cursor, limit: 200 })
+        const file = page.items.find(
+          (file) =>
+            file.available && file.metadata?.contentId === contentId && file.metadata?.kind === original?.resourceKind,
+        )
+        if (file) return presentFile(file, connection.libraryId, host.id)
+        cursor = page.nextCursor
+      } while (cursor)
+    } catch {
+      // Task synchronization remains available when a resource library is offline.
+    }
+  }
 }
 export async function libraryPresentation(connectionId: string, aggregation: boolean) {
   const connection = clients.get(connectionId)!
@@ -209,26 +304,7 @@ export async function libraryPresentation(connectionId: string, aggregation: boo
         } catch {}
       }
     }
-    presentation.set(file.id, {
-      filename: file.path || file.id,
-      basename: file.name,
-      size: file.size,
-      type: 'file',
-      lastmod: file.modified || '',
-      etag: file.etag || '',
-      resourceId: file.id,
-      libraryId,
-      libraryConnectionId: connectionId,
-      resourcePlatform: file.metadata?.platform,
-      resourceKind: file.metadata?.kind,
-      parseState: file.state,
-      resourceMetadata: file.metadata,
-      fileVersion: file.fileVersion,
-      coverAssetId: file.coverId,
-      parseMessage: file.message,
-      paramSfo: file.metadata?.platform === 'ps4' ? (file.metadata.raw as any) : undefined,
-      icon0,
-    })
+    presentation.set(file.id, { ...presentFile(file, libraryId, connectionId), icon0 })
   }
   if (!aggregation) return [...presentation.values()]
   return connection

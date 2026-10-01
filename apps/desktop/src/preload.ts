@@ -29,6 +29,7 @@ export const preload = () => {
     getAvailableInterfaces: () => ipcRendererInvoke('getAvailableInterfaces'),
     discoverPS4Hosts: () => ipcRendererInvoke('discoverPS4Hosts'),
     sendPS5Elf: (params) => ipcRendererInvoke('sendPS5Elf', params),
+    createWebDAVLibrary: (params) => ipcRendererInvoke('createWebDAVLibrary', params),
     openAppLog: () => ipcRendererInvoke('openAppLog'),
     checkUpdate: () => ipcRendererInvoke('checkUpdate'),
   }

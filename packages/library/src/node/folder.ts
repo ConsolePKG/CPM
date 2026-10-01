@@ -1,6 +1,7 @@
 import { open, realpath, readdir, stat } from 'node:fs/promises'
 import { resolve, relative, isAbsolute, basename } from 'node:path'
 import { LibraryError, type SourceAdapter, type SourceConfig } from '../types'
+import { isSystemMetadataPath } from '../paths'
 
 export class FolderSource implements SourceAdapter {
   constructor(public config: SourceConfig) {
@@ -22,6 +23,7 @@ export class FolderSource implements SourceAdapter {
       const entries = await readdir(await this.location(directory), { withFileTypes: true })
       for (const entry of entries) {
         const path = directory === '.' ? entry.name : `${directory}/${entry.name}`
+        if (isSystemMetadataPath(path)) continue
         if (entry.isDirectory()) pending.push(path)
         else if (entry.isFile() && /\.(pkg|nsp|xci|cia|3ds)$/i.test(entry.name)) yield await this.stat(path)
       }
