@@ -123,8 +123,8 @@ manifest. After rebuilding CPI in the sibling repository, run `pnpm cpi:sync` to
 refresh both before releasing CPM. The web build copies these public assets into
 the output; desktop packaging includes the same renderer assets.
 
-PS5 hosts running etaHEN use the separate AppInstUtil CPI payload. In Electron,
-CPM sends its bundled ELF directly to the public TCP 9021 loader, uses Content
+PS5 hosts use the separate AppInstUtil CPI payload with a standalone elfldr or
+etaHEN ELF loader. In Electron, CPM sends its bundled ELF directly to TCP 9021, uses Content
 IDs for progress, and serves package artwork from a local HTTP listener that
 the PS5 can reach. An interrupted install response leaves a task to query by
 Content ID; CPM does not resend the package automatically. PS5 task records
@@ -170,6 +170,11 @@ pending reads. Network errors can be retried. Encrypted/unsupported resources
 show their status rather than blocking the library or installation.
 
 ### PS4 browser preview
+
+In Electron, saved WebDAV connections use the same Node resource library service
+as local folders. Owner downloads use direct WebDAV URLs with encoded credentials;
+custom-header sources and read-only shares use scoped proxy URLs with 24-hour tokens.
+Keep Electron running and its LAN address reachable while the console uses a proxy URL.
 
 Run `pnpm web:build` followed by `pnpm web:preview`. Preview listens on
 `0.0.0.0:5173`; open the computer's LAN address from the PS4 browser.

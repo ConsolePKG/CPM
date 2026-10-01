@@ -1,7 +1,7 @@
 {
-  "version": "2.07",
+  "version": "2.12",
   "protocolVersion": 1,
   "filename": "rpi-payload-ps5.elf",
-  "size": 444808,
-  "sha256": "e2e3f156ed3a262a39fb864e444262ff21a471f9d3d1eaae5a190d469aa571a0"
+  "size": 509320,
+  "sha256": "1fdf8473a41b87b435412af4cb3e33e3708c5ddfcdf31b34d65b11bf624f4586"
 }
