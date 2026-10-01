@@ -3,11 +3,15 @@ import { Button, Empty } from '@/design-system'
 import { formatFileSize, formatPkgName } from '@/utils'
 import type { TableListProps } from './TableList'
 import { GameCover } from './GameCover'
+import { useContainer } from '@/store/container'
 export function SimpleList({
   data,
   handleInstallByActionType,
   fallbackCover,
 }: TableListProps & { fallbackCover?: string }) {
+  const {
+    ps4Installer: { isSendingInstall },
+  } = useContainer()
   return data.length ? (
     <div className="related-packages">
       {data.map((file) => (
@@ -22,7 +26,12 @@ export function SimpleList({
             </small>
             <small>{file.paramSfo?.CONTENT_ID}</small>
           </div>
-          <Button onClick={() => handleInstallByActionType(file, PkgListClickAction.install)}>安装</Button>
+          <Button
+            loading={isSendingInstall(file)}
+            onClick={() => handleInstallByActionType(file, PkgListClickAction.install)}
+          >
+            {isSendingInstall(file) ? '正在发送…' : '安装'}
+          </Button>
         </div>
       ))}
     </div>

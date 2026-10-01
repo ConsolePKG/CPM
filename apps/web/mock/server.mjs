@@ -72,7 +72,12 @@ function json(res, body, status = 200) {
   res.end(JSON.stringify(body))
 }
 for (const port of [4180, 4181, 4182]) {
-  const protocol = createProtocolMock({ platform: port === 4182 ? 'ps5' : 'ps4', files, demo: true })
+  const protocol = createProtocolMock({
+    platform: port === 4182 ? 'ps5' : 'ps4',
+    files,
+    demo: true,
+    mutationDelayMs: Math.max(0, Math.min(5000, Number(process.env.MOCK_MUTATION_DELAY_MS) || 0)),
+  })
   const tasks = new Map()
   let nextId = 1
   http

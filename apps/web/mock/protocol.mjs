@@ -1,8 +1,15 @@
 import { randomUUID } from 'node:crypto'
 import { Readable } from 'node:stream'
 
-export function createProtocolMock({ platform = 'ps4', files = [], now = () => Date.now(), demo = false } = {}) {
+export function createProtocolMock({
+  platform = 'ps4',
+  files = [],
+  now = () => Date.now(),
+  demo = false,
+  mutationDelayMs = 0,
+} = {}) {
   const jobs = new Map()
+  const retired = new Map()
   const shares = new Map()
   const downloads = new Map()
   const lostResponses = new Set()
@@ -56,7 +63,7 @@ export function createProtocolMock({ platform = 'ps4', files = [], now = () => D
   const wire = (job) => {
     advance(job)
     const { request, createdAt, ...value } = job
-    return value
+    return { ...value, observation: { sessionId: 1, sampleId: now(), sampledAt: now(), ageMs: 0 } }
   }
   return {
     jobs,
@@ -81,6 +88,12 @@ export function createProtocolMock({ platform = 'ps4', files = [], now = () => D
       }
       const url = new URL(request.url, origin)
       if (!url.pathname.startsWith('/api/v1/')) return false
+      if (
+        mutationDelayMs &&
+        request.method === 'POST' &&
+        (url.pathname === '/api/v1/jobs' || url.pathname.endsWith('/actions'))
+      )
+        await new Promise((resolve) => setTimeout(resolve, mutationDelayMs))
       const json = (value, status = 200) => {
         response.writeHead(status, { 'Content-Type': 'application/json' })
         response.end(JSON.stringify(value))
@@ -171,6 +184,7 @@ export function createProtocolMock({ platform = 'ps4', files = [], now = () => D
           resume: platform === 'ps4',
           cancel: platform === 'ps4',
           retry: true,
+          deleteHistory: true,
           completionVerified: true,
         })
         return true
@@ -180,6 +194,11 @@ export function createProtocolMock({ platform = 'ps4', files = [], now = () => D
           const submission = await read()
           if (!submission.idempotencyKey || !/^https?:\/\//.test(submission.url || '')) {
             fail('Invalid submission', 400)
+            return true
+          }
+          for (const [key, item] of retired) if (item.expiresAt <= now()) retired.delete(key)
+          if (retired.has(submission.idempotencyKey)) {
+            fail('Installation record was deleted; submit a new request key', 410)
             return true
           }
           let job = [...jobs.values()].find((job) => job.idempotencyKey === submission.idempotencyKey)
@@ -193,7 +212,7 @@ export function createProtocolMock({ platform = 'ps4', files = [], now = () => D
                 (job) =>
                   ((submission.contentId && job.request.contentId === submission.contentId) ||
                     (platform === 'ps5' && (!submission.contentId || !job.request.contentId))) &&
-                  !['completed', 'failed', 'cancelled'].includes(wire(job).state),
+                  !['completed', 'failed', 'cancelled', 'unknown'].includes(wire(job).state),
               )
             ) {
               fail('Active content installation', 409)
@@ -211,6 +230,11 @@ export function createProtocolMock({ platform = 'ps4', files = [], now = () => D
                   : { content_id: submission.contentId || 'UP0001-CUSA12345_00-ABCDEFGHIJKLMNOP' },
               state: 'queued',
               progress: { transferred: 0, total: 1024 * 1024 },
+              titleId: submission.titleId || (submission.contentId || '').slice(7, 16),
+              packageType: submission.packageType || submission.resource?.kind || 'unknown',
+              contentId: submission.contentId,
+              resourceId: submission.resourceId,
+              resource: submission.resource,
               request: submission,
               createdAt: now(),
             }
@@ -233,12 +257,33 @@ export function createProtocolMock({ platform = 'ps4', files = [], now = () => D
         }
         const job = jobs.get(route[1])
         if (!job) {
+          if (route[2] === 'actions') {
+            const { action } = await read()
+            if (
+              action === 'delete' &&
+              [...retired.values()].some((item) => item.jobId === route[1] && item.expiresAt > now())
+            ) {
+              json({ jobId: route[1], deleted: true })
+              return true
+            }
+          }
           fail('Job not found', 404)
           return true
         }
         if (route[2] === 'actions') {
           const { action, idempotencyKey } = await read()
           advance(job)
+          if (action === 'delete') {
+            if (!['completed', 'failed', 'cancelled', 'unknown'].includes(job.state)) {
+              fail('Cannot delete an active installation record', 409)
+              return true
+            }
+            if (retired.size === 2048) retired.delete(retired.keys().next().value)
+            retired.set(job.idempotencyKey, { jobId: job.jobId, expiresAt: now() + 86400000 })
+            jobs.delete(job.jobId)
+            json({ jobId: job.jobId, deleted: true })
+            return true
+          }
           if (action === 'retry') {
             if (
               !idempotencyKey ||

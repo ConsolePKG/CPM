@@ -4,6 +4,7 @@ import { canControlJob, sampleTransfer, taskKey, transferPercent } from '../src/
 import { filterLibrary } from '../src/pages/Home/library'
 import { Ps4PkgCategory } from '@njzy/ps4-pkg-info/web'
 import { type FileStat, type InstallTask, TaskStatus } from '../src/types'
+import { activeResourceTasks } from '../src/utils/taskPresentation'
 const file = (name: string, category = Ps4PkgCategory.GameDigital): FileStat => ({
   filename: `/${name}.pkg`,
   basename: name + '.pkg',
@@ -14,6 +15,38 @@ const file = (name: string, category = Ps4PkgCategory.GameDigital): FileStat => 
   paramSfo: { TITLE: name, CATEGORY: category } as FileStat['paramSfo'],
 })
 describe('original functional contracts', () => {
+  it('excludes OS and NAS metadata while retaining real unsupported resources', () => {
+    const files = ['._hello_world', '.DS_Store', '__MACOSX/game.pkg', '@eaDir/game.pkg', 'hello_world', 'game.pkg'].map(
+      (name) => ({ ...file(name), filename: `/${name}`, basename: name }),
+    )
+    expect(filterLibrary(files, '', 'all', 'name', false).map((item) => item.basename)).toEqual([
+      'game.pkg',
+      'hello_world',
+    ])
+  })
+  it('shows only current attempts for the exact library resource and file version on its cover', () => {
+    const resource = { ...file('Game'), resourceId: 'same-file', libraryId: 'library-a', fileVersion: 'v1' }
+    const task: InstallTask = {
+      file: resource,
+      title: 'Game',
+      ps4HostUrl: 'http://console-one',
+      fileServerHostId: 'connection-a',
+      status: TaskStatus.INSTALLING,
+      jobState: 'transferring',
+    }
+    const tasks = [
+      task,
+      { ...task, ps4HostUrl: 'http://console-two' },
+      { ...task, file: { ...resource, libraryId: 'library-b' } },
+      { ...task, file: { ...resource, fileVersion: 'v2' } },
+      { ...task, status: TaskStatus.FAILED, jobState: 'failed' as const },
+      { ...task, status: TaskStatus.UNKNOWN, jobState: 'unknown' as const },
+      { ...task, supersededBy: '2' },
+      { ...task, activity: 'idle' as const },
+    ]
+    expect(activeResourceTasks(resource, tasks)).toEqual(tasks.slice(0, 2))
+    expect(activeResourceTasks({ ...resource, fileVersion: 'v2' }, [task])).toEqual([])
+  })
   it('requires a valid console host and port and keeps HTTP', () => {
     expect(validateConsoleAddress('https://192.168.1.2:12801/').url).toBe('http://192.168.1.2:12801')
     for (const value of ['', '192.168.1.2', 'foo:99999', 'host:12801/path'])
@@ -84,7 +117,7 @@ describe('progress boundaries', () => {
     task.capabilities!.pause = false
     expect(canControlJob(task, 'pause')).toBe(false)
     task.jobState = 'unknown'
-    expect(canControlJob(task, 'retry')).toBe(false)
+    expect(canControlJob(task, 'retry')).toBe(true)
     task.jobState = 'failed'
     expect(canControlJob(task, 'retry')).toBe(true)
   })

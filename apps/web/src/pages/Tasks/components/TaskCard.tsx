@@ -1,144 +1,230 @@
 import { useState } from 'react'
 import { Pause, Play, Trash2 } from 'react-feather'
-import { Button, IconButton, Progress, ConfirmDialog } from '@/design-system'
+import { Button, IconButton, Progress, ConfirmDialog, Disclosure } from '@/design-system'
 import { type InstallTask, TaskActionType, TaskStatus } from '@/types'
 import { formatFileSize } from '@/utils'
+import { remainingTimeLabel, taskActionFeedback, taskStatusLabel } from '@/utils/taskPresentation'
 import { GameCover } from '@/pages/Home/components/GameCover'
-import { canControlJob } from '@/hooks/taskProgress'
+import { canControlJob, canDeleteTask } from '@/hooks/taskProgress'
 export function TaskCard({
   task,
+  hostName,
   onAction,
+  pendingAction,
 }: {
   task: InstallTask
+  hostName?: string
   onAction: (task: InstallTask, action: TaskActionType) => Promise<void>
+  pendingAction?: TaskActionType
 }) {
-  const [busy, setBusy] = useState(false)
+  const [localAction, setLocalAction] = useState<TaskActionType>()
+  const currentAction = localAction || pendingAction
+  const busy = !!currentAction
   const [confirmation, setConfirmation] = useState<TaskActionType>()
   const active = task.status === TaskStatus.INSTALLING
   const complete = task.status === TaskStatus.FINISHED
+  const paused = task.status === TaskStatus.PAUSED
   const canPause = canControlJob(task, 'pause')
   const canResume = canControlJob(task, 'resume')
   const canCancel = canControlJob(task, 'cancel')
-  const percent = task.progressInfo?._percent || 0
+  const status = currentAction ? taskActionFeedback[currentAction].pending : taskStatusLabel(task)
+  const title = task.title || task.file.basename
+  const platform = (task.platform || 'ps4').toUpperCase()
+  const destination = hostName || task.ps4HostUrl.replace(/^https?:\/\//, '')
+  const kind =
+    ({ base: '本体', patch: '补丁', dlc: 'DLC', unknown: '安装包' } as Record<string, string>)[
+      task.packageType || task.file.resourceKind || 'unknown'
+    ] || '安装包'
+  const version = task.file.resourceMetadata?.version || task.file.paramSfo?.APP_VER
+  const percent = complete ? 100 : Math.max(0, Math.min(100, task.progressInfo?._percent || 0))
+  const total = task.progressInfo?.length_total || task.file.size
+  const transferred = task.progressInfo?.transferred_total || 0
   const remaining = task.progressInfo?.rest_sec
-  const status = task.offline
-    ? '离线 · 保留最近状态'
-    : task.jobState
-      ? {
-          queued: '排队',
-          submitting: '提交中',
-          accepted: '已接受',
-          transferring: '传输中',
-          installing: '安装处理中',
-          completed: '已完成',
-          paused: '已暂停',
-          failed: '失败',
-          cancelled: '已取消',
-          unknown: '待核对',
-        }[task.jobState]
-      : task.cleanupPending
-        ? '待清理'
-        : task.errorMessage
-          ? '出错'
+  const transferring =
+    active && (!task.jobState || task.jobState === 'transferring') && !task.offline && !task.queryError
+  const hasProgress = (active || paused) && !task.pendingSync && !['queued', 'submitting'].includes(task.jobState || '')
+  const tone =
+    task.offline || task.queryError || task.pendingSync
+      ? 'muted'
+      : task.status === TaskStatus.FAILED
+        ? 'danger'
+        : complete
+          ? 'success'
           : active
-            ? task.platform === 'ps5'
-              ? task.nativeState === 'playable'
-                ? '可启动'
-                : task.nativeState || '安装中'
-              : '下载中'
-            : complete
-              ? '已完成'
-              : '已暂停'
+            ? 'active'
+            : 'muted'
+  const note = task.queryError
+    ? '暂时无法获取主机状态，显示最近一次进度。'
+    : task.offline
+      ? '连接恢复后会自动更新进度。'
+      : task.errorMessage ||
+        (task.pendingSync
+          ? '正在确认主机是否已接收任务。'
+          : task.jobState === 'queued'
+            ? '等待主机开始下载。'
+            : task.jobState === 'submitting'
+              ? '正在向主机提交安装请求。'
+              : paused && !canResume
+                ? `在 ${platform} 上继续下载。`
+                : task.jobState === 'installing' && percent >= 100
+                  ? '下载已完成，主机正在处理安装。'
+                  : undefined)
   const act = async (action: TaskActionType) => {
-    setBusy(true)
+    if (busy) return
+    setLocalAction(action)
     try {
       await onAction(task, action)
     } finally {
-      setBusy(false)
+      setLocalAction(undefined)
       setConfirmation(undefined)
     }
   }
   return (
-    <article className={`task-card ${active ? 'is-downloading' : 'is-compact'}`}>
+    <article className={`task-card ${active || paused ? 'has-progress' : 'is-compact'}`}>
       <div className="game-cover task-cover">
-        <GameCover file={task.file} platform={task.platform} />
+        <GameCover file={task.file} compact />
       </div>
       <div className="task-copy">
         <div className="task-title">
-          <h2>{task.title || task.file.basename}</h2>
-          <span className={task.errorMessage ? 'task-error' : 'muted'}>{status}</span>
+          <h3 title={title}>{title}</h3>
+          <div className="task-controls">
+            <span className="task-status" data-tone={tone} aria-live="polite">
+              {status}
+            </span>
+            <div className="task-actions">
+              {canControlJob(task, 'retry') && (
+                <Button
+                  disabled={busy}
+                  loading={currentAction === TaskActionType.RETRY}
+                  onClick={() => act(TaskActionType.RETRY)}
+                >
+                  重新安装
+                </Button>
+              )}
+              {!complete && !task.cleanupPending && (canPause || canResume) && (
+                <IconButton
+                  label={currentAction ? taskActionFeedback[currentAction].pending : canPause ? '暂停下载' : '继续下载'}
+                  disabled={busy}
+                  loading={currentAction === TaskActionType.PAUSE || currentAction === TaskActionType.RESUME}
+                  onClick={() => act(canPause ? TaskActionType.PAUSE : TaskActionType.RESUME)}
+                >
+                  {currentAction !== TaskActionType.PAUSE &&
+                    currentAction !== TaskActionType.RESUME &&
+                    (canPause ? <Pause /> : <Play />)}
+                </IconButton>
+              )}
+              {(canCancel || canDeleteTask(task)) && (
+                <IconButton
+                  label={canCancel ? '取消下载' : '删除记录'}
+                  variant="text"
+                  disabled={busy}
+                  loading={currentAction === TaskActionType.CANCEL || currentAction === TaskActionType.DELETE}
+                  onClick={() => setConfirmation(canCancel ? TaskActionType.CANCEL : TaskActionType.DELETE)}
+                >
+                  {currentAction !== TaskActionType.CANCEL && currentAction !== TaskActionType.DELETE && <Trash2 />}
+                </IconButton>
+              )}
+            </div>
+          </div>
         </div>
-        <p className="task-host">
-          {task.platform === 'ps5' ? 'PS5' : 'PS4'} · {task.ps4HostUrl}
-          {task.jobId && ` · job ${task.jobId}`}
-          {task.lastSyncedAt && ` · 同步 ${new Date(task.lastSyncedAt).toLocaleTimeString()}`}
+        <p className="task-meta">
+          <span>
+            {kind}
+            {version && ` · v${version}`}
+          </span>
+          <span>
+            目标 {platform}
+            {destination !== platform && ` / ${destination}`}
+          </span>
         </p>
-        <div className="task-progress-label">
-          <strong>
-            {status} {percent}%
-          </strong>
-          <span>
-            {active && remaining && remaining > 0
-              ? `剩余 ${Math.floor(remaining / 60)} 分 ${Math.round(remaining % 60)} 秒`
-              : complete
-                ? '安装完成'
-                : '—'}
-          </span>
-        </div>
-        <Progress active={active && !task.errorMessage} percent={percent} label={`${task.title} 安装进度`} />
-        <div className="task-facts">
-          <span>
-            {formatFileSize(task.progressInfo?.transferred_total || 0)} /{' '}
-            {formatFileSize(task.progressInfo?.length_total || task.file.size)}
-          </span>
-          {active && (
-            <span>下载 {task.downloadSpeed === undefined ? '采样中…' : `${formatFileSize(task.downloadSpeed)}/s`}</span>
-          )}
-        </div>
-        {task.errorMessage && (
-          <p className="task-error" role="alert">
-            {task.errorMessage}
+        {hasProgress && (
+          <div className="task-transfer">
+            <div className="task-progress-label">
+              <span>
+                {formatFileSize(transferred)}{' '}
+                <span className="muted">/ {total > 0 ? formatFileSize(total) : '大小待确认'}</span>
+              </span>
+              <strong>{total > 0 || complete ? `${percent}%` : '—'}</strong>
+            </div>
+            <Progress active={transferring} percent={percent} label={`${title} 下载进度`} />
+            {transferring && (
+              <div className="task-facts">
+                <span>
+                  {task.downloadSpeed === undefined ? '正在计算速度…' : `${formatFileSize(task.downloadSpeed)}/s`}
+                </span>
+                {!!remaining && remaining > 0 && <span>剩余{remainingTimeLabel(remaining)}</span>}
+              </div>
+            )}
+          </div>
+        )}
+        {note && (
+          <p
+            className={`task-note ${tone === 'danger' ? 'task-error' : ''}`}
+            role={tone === 'danger' ? 'alert' : undefined}
+          >
+            {note}
           </p>
         )}
-      </div>
-      <div className="task-actions">
-        {canControlJob(task, 'retry') && (
-          <Button disabled={busy} onClick={() => act(TaskActionType.RETRY)}>
-            新建重试
-          </Button>
-        )}
-        {!complete && !task.cleanupPending && (canPause || canResume) && (
-          <IconButton
-            label={canPause ? '暂停任务' : '继续任务'}
-            loading={busy}
-            onClick={() => act(canPause ? TaskActionType.PAUSE : TaskActionType.RESUME)}
-          >
-            {canPause ? <Pause /> : <Play />}
-          </IconButton>
-        )}
-        <IconButton
-          label={task.cleanupPending ? '重新查询取消结果' : !canCancel ? '删除任务记录' : '取消下载'}
-          variant="text"
-          disabled={busy}
-          onClick={() => setConfirmation(!canCancel ? TaskActionType.DELETE : TaskActionType.CANCEL)}
-        >
-          <Trash2 />
-        </IconButton>
-        {task.cleanupPending && (
-          <Button variant="text" disabled={busy} onClick={() => setConfirmation(TaskActionType.DELETE)}>
-            移除记录
-          </Button>
-        )}
+        <Disclosure title="任务详情" className="task-details">
+          <dl>
+            <div>
+              <dt>目标主机</dt>
+              <dd>{task.ps4HostUrl}</dd>
+            </div>
+            {task.sourceName && (
+              <div>
+                <dt>资源库</dt>
+                <dd>{task.sourceName}</dd>
+              </div>
+            )}
+            <div>
+              <dt>文件</dt>
+              <dd>{task.file.basename}</dd>
+            </div>
+            <div>
+              <dt>大小</dt>
+              <dd>{total > 0 ? formatFileSize(total) : '待确认'}</dd>
+            </div>
+            {task.titleId && (
+              <div>
+                <dt>Title ID</dt>
+                <dd>{task.titleId}</dd>
+              </div>
+            )}
+            {task.contentId && (
+              <div>
+                <dt>Content ID</dt>
+                <dd>{task.contentId}</dd>
+              </div>
+            )}
+            {task.jobId && (
+              <div>
+                <dt>任务编号</dt>
+                <dd>{task.jobId}</dd>
+              </div>
+            )}
+            {!!(task.lastObservedAt || task.lastSyncedAt) && (
+              <div>
+                <dt>最近更新</dt>
+                <dd>{new Date(task.lastObservedAt || task.lastSyncedAt!).toLocaleString()}</dd>
+              </div>
+            )}
+          </dl>
+          {task.resourceUnavailable && (
+            <p className="task-note">原资源库未连接或文件不可用，重新安装前需恢复资源连接。</p>
+          )}
+        </Disclosure>
       </div>
       <ConfirmDialog
         visible={Boolean(confirmation)}
         title={confirmation === TaskActionType.DELETE ? '删除任务记录？' : '取消下载？'}
         description={
           confirmation === TaskActionType.DELETE
-            ? `仅移除 CPM 记录，不会清理 ${task.platform === 'ps5' ? 'PS5' : 'PS4'} 上的内容。`
-            : '停止并取消原生下载，不会自动卸载已安装的本体、补丁或 DLC。'
+            ? '删除后各客户端会同步移除这条记录，不会卸载主机上的游戏。'
+            : '停止并取消下载，不会卸载已安装的本体、补丁或 DLC。'
         }
         confirmText={confirmation === TaskActionType.DELETE ? '删除记录' : '确认取消'}
+        loading={busy}
         onCancel={() => setConfirmation(undefined)}
         onConfirm={() => confirmation && act(confirmation)}
       />

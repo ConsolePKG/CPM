@@ -25,7 +25,12 @@ import { loadPkgResource, resourceKey } from '../pkgResources'
 import './gameDetail.less'
 
 export function GameDetailPage({ data, hasBackground }: { data?: FileStat; hasBackground: boolean }) {
-  const { settings, handleInstall, fileServer } = useContainer()
+  const {
+    settings,
+    handleInstall,
+    fileServer,
+    ps4Installer: { isSendingInstall },
+  } = useContainer()
   const displayPkgRawTitle = settings.displayPkgRawTitle
   const navigate = useNavigate()
   const location = useLocation()
@@ -340,9 +345,10 @@ export function GameDetailPage({ data, hasBackground }: { data?: FileStat; hasBa
                       className="detail-install-button"
                       variant="primary"
                       icon={<Download size={18} />}
+                      loading={isSendingInstall(data)}
                       onClick={() => void handleInstall(data)}
                     >
-                      安装到主机
+                      {isSendingInstall(data) ? '正在发送…' : '安装到主机'}
                     </Button>
                   </div>
                 </section>

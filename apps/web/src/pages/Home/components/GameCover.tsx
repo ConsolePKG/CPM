@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Folder, Package } from 'react-feather'
 import type { FileStat } from '@/types'
 import { libraryCover } from '@/library/runtime'
-export function GameCover({ file, platform = 'ps4' }: { file: FileStat; platform?: 'ps4' | 'ps5' }) {
+export function GameCover({ file, compact = false }: { file: FileStat; compact?: boolean }) {
   const [failed, setFailed] = useState(false)
   const [resolved, setResolved] = useState<string>()
   useEffect(() => setFailed(false), [file.icon0])
@@ -30,16 +30,8 @@ export function GameCover({ file, platform = 'ps4' }: { file: FileStat; platform
     <img src={source} alt="" loading="lazy" onError={() => setFailed(true)} />
   ) : (
     <div className="game-cover-placeholder">
-      {file.type === 'directory' ? <Folder size={48} /> : <Package size={48} />}
-      <span>
-        {file.type === 'directory'
-          ? '文件夹'
-          : (file.resourcePlatform || platform) === 'ps5'
-            ? 'PLAYSTATION 5'
-            : (file.resourcePlatform || platform) === 'ps4'
-              ? 'PLAYSTATION 4'
-              : '未验证的格式'}
-      </span>
+      {file.type === 'directory' ? <Folder size={32} aria-hidden="true" /> : <Package size={32} aria-hidden="true" />}
+      {!compact && <span>{file.type === 'directory' ? '文件夹' : '暂无封面'}</span>}
     </div>
   )
 }

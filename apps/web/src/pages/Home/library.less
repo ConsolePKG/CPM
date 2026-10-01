@@ -17,8 +17,23 @@
 .app-shell-mac .library-toolbar {
   padding-left: max(var(--page-gutter), 90px);
 }
+.library-category.cpm-button {
+  height: 36px;
+  min-height: 36px;
+  padding: 0 12px;
+  gap: 8px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+.library-category > span {
+  display: inline-flex;
+  align-items: center;
+}
+.library-category > svg {
+  flex-shrink: 0;
+}
 .app-shell-desktop .library-category {
-  padding-left: 0;
+  margin-left: -12px;
 }
 .app-shell-desktop .library-count {
   padding: 2px 7px;
@@ -139,6 +154,58 @@
   grid-template-columns: repeat(auto-fill, minmax(min(var(--cover-min), 100%), 1fr));
   gap: 28px 26px;
 }
+.game-tile {
+  min-width: 0;
+}
+.game-tile .game-card {
+  width: 100%;
+}
+.game-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 24px;
+  margin-top: 4px;
+}
+.game-meta > small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.game-meta > small,
+.game-parse-status {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 12px;
+}
+.game-task-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-size: 11px;
+  text-decoration: none;
+}
+.game-task-badge > span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.game-task-badge:hover {
+  text-decoration: underline;
+}
+.game-task-badge:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
 .game-card.cpm-button {
   min-width: 0;
   display: flex;
@@ -186,14 +253,13 @@
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
   color: var(--muted);
   border-radius: inherit;
   background: linear-gradient(145deg, var(--surface-3), var(--surface));
 }
 .game-cover-placeholder span {
-  font-size: 10px;
-  letter-spacing: 2px;
+  font-size: 12px;
 }
 .game-cover-action {
   position: absolute;

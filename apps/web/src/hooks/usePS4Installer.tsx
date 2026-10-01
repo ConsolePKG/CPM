@@ -1,17 +1,21 @@
 import { Notification } from '@/components/ui'
 import { useEffect, useRef, useState } from 'react'
 import { usePS4HostForm } from './useHostForms'
-import { canControlJob, sampleTransfer, taskKey, transferPercent } from './taskProgress'
+import { canControlJob, canDeleteTask, taskKey } from './taskProgress'
 import { FileStat, InstallTask, PS4Host, TaskActionType, TaskStatus } from '@/types'
 import { getInitConfigFromStore, updateConfigStore } from '@/utils'
 import { isPlayStationBrowser } from '@/utils/browser'
 import { initializeLocalConsole, localConsoleSetupKey } from './localConsole'
 import { ConsoleJobsClient, JobApiError, type Job, type JobSubmission } from '@/service/jobs'
 import { uploadPS5Icon } from '@/service/ps5'
-import { resourceDownload } from '@/library/runtime'
+import { libraryCover, resourceDownload, resolveLibraryFile } from '@/library/runtime'
+import { applyJob, isAttempt, restoreJobTasks } from './taskRecovery'
 import { newId } from '@consolepkg/library'
+import { taskActionFeedback } from '@/utils/taskPresentation'
 
 const storageKey = 'cpm-console-jobs-v1'
+const installRequestKey = (file: FileStat, host: string) =>
+  JSON.stringify([host, file.libraryId || file.libraryConnectionId, file.resourceId || file.filename, file.fileVersion])
 const persistTasks = (tasks: InstallTask[]) =>
   localStorage.setItem(
     storageKey,
@@ -33,67 +37,31 @@ function useLocalConsoleDefaults() {
     isPlayStationBrowser && !setup,
   )
 }
-const statusOf = (job: Job) =>
-  job.state === 'completed'
-    ? TaskStatus.FINISHED
-    : job.state === 'failed'
-      ? TaskStatus.FAILED
-      : job.state === 'cancelled'
-        ? TaskStatus.CANCELLED
-        : job.state === 'unknown'
-          ? TaskStatus.UNKNOWN
-          : job.state === 'paused'
-            ? TaskStatus.PAUSED
-            : TaskStatus.INSTALLING
 function loadTasks(): InstallTask[] {
   try {
     const saved = localStorage.getItem(storageKey)
-    if (saved) return JSON.parse(saved)
+    if (saved) {
+      const tasks = JSON.parse(saved)
+      return Array.isArray(tasks)
+        ? tasks
+            .filter((task) => !task.idempotencyKey?.startsWith('historical:') && !task.supersededBy)
+            .map((task) => ({
+              ...task,
+              offline: true,
+              pendingSync: true,
+              downloadSpeed: undefined,
+              sampleTime: undefined,
+              sampleTransferred: undefined,
+              speedHistory: [],
+            }))
+        : []
+    }
     const legacy = JSON.parse(localStorage.getItem('cpm-ps5-install-tasks') || '[]')
     if (!Array.isArray(legacy)) return []
     localStorage.setItem('cpm-console-jobs-migration-backup', JSON.stringify(legacy))
-    return legacy.map((task) => ({
-      ...task,
-      taskId: undefined,
-      jobState: 'unknown',
-      status: TaskStatus.UNKNOWN,
-      errorMessage: '旧任务没有主机 jobId；请在主机上核对，不能自动重装',
-    }))
+    return []
   } catch {
     return []
-  }
-}
-function applyJob(task: InstallTask, job: Job): InstallTask {
-  const progressInfo = {
-    preparing_percent: 0,
-    local_copy_percent: 0,
-    rest_sec: 0,
-    rest_sec_total: 0,
-    num_index: 0,
-    num_total: 0,
-    length: job.progress.total,
-    length_total: job.progress.total,
-    transferred: job.progress.transferred,
-    transferred_total: job.progress.transferred,
-    error: job.errorCode || 0,
-    bits: 0,
-    _percent: transferPercent(job.progress.transferred, job.progress.total),
-  }
-  return {
-    ...task,
-    jobId: job.jobId,
-    taskId: job.nativeRef.task_id !== undefined && job.nativeRef.task_id >= 0 ? job.nativeRef.task_id : undefined,
-    contentId: job.nativeRef.content_id || undefined,
-    platform: job.platform,
-    title: job.title || task.title,
-    jobState: job.state,
-    nativeState: job.nativeState,
-    status: statusOf(job),
-    progressInfo,
-    offline: false,
-    lastSyncedAt: Date.now(),
-    errorMessage: job.error || undefined,
-    ...sampleTransfer(task, job.progress.transferred, Date.now()),
   }
 }
 export const usePS4Installer = (fileServerHostId?: string) => {
@@ -102,6 +70,12 @@ export const usePS4Installer = (fileServerHostId?: string) => {
   const [curSelectPs4HostId, setCurSelectPs4HostId] = useState<string | undefined>(initial.selected)
   const [installTasks, setInstallTasks] = useState<InstallTask[]>(loadTasks)
   const [totalSpeedHistory, setTotalSpeedHistory] = useState<number[]>([])
+  const sendingRequests = useRef(new Set<string>())
+  const [sendingInstalls, setSendingInstalls] = useState(new Set<string>())
+  const actionRequests = useRef(new Set<string>())
+  const [pendingActions, setPendingActions] = useState<Record<string, TaskActionType>>({})
+  const libraryChecks = useRef(new Map<string, { pending: boolean; nextAt: number }>())
+  const listRevision = useRef(0)
   const tasksRef = useRef(installTasks)
   tasksRef.current = installTasks
   const { open: openHostForm } = usePS4HostForm()
@@ -118,135 +92,200 @@ export const usePS4Installer = (fileServerHostId?: string) => {
   }, [installTasks])
   useEffect(() => {
     let stopped = false
-    void Promise.all(
-      ps4Hosts.map(async (host) => {
-        try {
-          const client = new ConsoleJobsClient(host.url)
-          const capabilities = await client.capabilities()
-          let cursor: string | undefined
-          const jobs: Job[] = []
-          do {
-            const page = await client.list(cursor)
-            jobs.push(...page.items)
-            cursor = page.nextCursor
-          } while (cursor)
-          if (!stopped)
+    const checking = new Set<string>()
+    const poll = async () => {
+      await Promise.all(
+        ps4Hosts.map(async (host) => {
+          if (checking.has(host.id)) return
+          checking.add(host.id)
+          const snapshot = tasksRef.current
+          const revision = listRevision.current
+          try {
+            const client = new ConsoleJobsClient(host.url)
+            const capabilities = await client.capabilities()
+            const jobs: Job[] = []
+            let cursor: string | undefined
+            do {
+              const page = await client.list(cursor)
+              jobs.push(...page.items)
+              cursor = page.nextCursor
+            } while (cursor && !stopped)
+            if (stopped || revision !== listRevision.current) return
             setInstallTasks((previous) => {
-              const restored = jobs
-                .filter(
-                  (job) =>
-                    !previous.some(
-                      (task) =>
-                        (task.hostId === host.id || task.ps4HostUrl === host.url) &&
-                        (task.jobId === job.jobId || task.idempotencyKey === job.idempotencyKey),
-                    ),
-                )
-                .map((job) =>
-                  applyJob(
-                    {
-                      file: {
-                        filename: `cpi-job-${job.jobId}`,
-                        basename: job.title || `CPI job ${job.jobId}`,
-                        type: 'file',
-                        size: job.progress.total,
-                        etag: '',
-                        lastmod: '',
-                      },
-                      hostId: host.id,
-                      capabilities,
-                      title: job.title,
-                      ps4HostUrl: host.url,
-                      fileServerHostId: '',
-                      status: TaskStatus.UNKNOWN,
-                    },
-                    job,
-                  ),
-                )
+              if (revision !== listRevision.current) return previous
+              const refreshed = previous
+              // A submission created during this request may not be in its snapshot.
+              const concurrent = refreshed.filter(
+                (task) =>
+                  !snapshot.some((old) => taskKey(old) === taskKey(task)) &&
+                  !jobs.some((job) => task.jobId === job.jobId || task.idempotencyKey === job.idempotencyKey),
+              )
               return [
-                ...restored,
-                ...previous.map((task) => {
-                  if (task.hostId !== host.id && task.ps4HostUrl !== host.url) return task
-                  const job = jobs.find((job) => task.jobId === job.jobId || task.idempotencyKey === job.idempotencyKey)
-                  return job ? applyJob({ ...task, hostId: host.id, capabilities }, job) : task
-                }),
+                ...restoreJobTasks(
+                  refreshed.filter((task) => !concurrent.includes(task)),
+                  host,
+                  jobs,
+                  capabilities,
+                ),
+                ...concurrent,
               ]
             })
-        } catch {}
-      }),
-    )
-    return () => {
-      stopped = true
-    }
-  }, [ps4Hosts])
-  useEffect(() => {
-    let stopped = false
-    let checking = false
-    const poll = async () => {
-      if (checking) return
-      checking = true
-      const pendingTasks = tasksRef.current.filter(
-        (task) =>
-          !['completed', 'failed', 'cancelled'].includes(task.jobState || '') &&
-          (task.jobId || task.submission || task.retryOfJobId),
-      )
-      const updates: { original: string; task: InstallTask }[] = []
-      let next = 0
-      await Promise.all(
-        Array.from({ length: Math.min(4, pendingTasks.length) }, async () => {
-          while (next < pendingTasks.length && !stopped) {
-            const task = pendingTasks[next++]
-            try {
-              const client = new ConsoleJobsClient(task.ps4HostUrl)
-              const job = task.jobId
-                ? await client.get(task.jobId)
-                : task.retryOfJobId
+            // Library enrichment is independent of console synchronization.
+            // Slow/offline sources must not delay the next CPI refresh.
+            for (const job of jobs.filter(isAttempt)) {
+              const key = `${host.url}#${job.jobId}`
+              const check = libraryChecks.current.get(key)
+              if (check?.pending || (check && check.nextAt > Date.now())) continue
+              libraryChecks.current.set(key, { pending: true, nextAt: 0 })
+              void (async () => {
+                let file: FileStat | undefined
+                try {
+                  const previous = tasksRef.current.find(
+                    (task) => task.ps4HostUrl === host.url && task.jobId === job.jobId,
+                  )
+                  const original = job.resourceId
+                    ? ({
+                        ...previous?.file,
+                        resourceId: job.resourceId,
+                        libraryId: job.resource?.libraryId || previous?.file.libraryId,
+                        fileVersion: job.resource?.fileVersion || previous?.file.fileVersion,
+                      } as FileStat)
+                    : previous?.file
+                  file = await resolveLibraryFile(original, job.nativeRef.content_id || job.contentId, true)
+                } catch {
+                } finally {
+                  libraryChecks.current.set(key, { pending: false, nextAt: Date.now() + 10000 })
+                }
+                if (!stopped)
+                  setInstallTasks((tasks) =>
+                    tasks.map((task) =>
+                      task.ps4HostUrl === host.url && task.jobId === job.jobId
+                        ? {
+                            ...task,
+                            resourceUnavailable: !file,
+                            sourceName:
+                              task.sourceName ||
+                              (file &&
+                                (
+                                  getInitConfigFromStore('fileServerHosts', []) as import('@/types').FileServerHost[]
+                                ).find((source) => source.id === file.libraryConnectionId)?.alias),
+                            ...(file
+                              ? { file, fileServerHostId: file.libraryConnectionId || task.fileServerHostId }
+                              : {}),
+                          }
+                        : task,
+                    ),
+                  )
+              })()
+            }
+            // Check the authoritative list before replaying an unconfirmed request.
+            const pending = snapshot.filter(
+              (task) =>
+                task.ps4HostUrl === host.url &&
+                !task.jobId &&
+                task.jobState !== 'failed' &&
+                (task.submission || task.retryOfJobId) &&
+                !jobs.some((job) => job.idempotencyKey === task.idempotencyKey) &&
+                (!task.submittedAt || Date.now() - task.submittedAt >= 15000),
+            )
+            for (const task of pending) {
+              if (stopped) break
+              try {
+                if (!task.submittedAt || Date.now() - task.submittedAt >= 24 * 60 * 60 * 1000)
+                  throw new JobApiError('请求核对期限已过，安装结果未确认；请在主机检查后重新发送', 410)
+                const job = task.retryOfJobId
                   ? await client.action(task.retryOfJobId, 'retry', task.idempotencyKey)
                   : await client.submit(task.submission!)
-              updates.push({ original: taskKey(task), task: applyJob(task, job) })
-            } catch (error) {
-              const rejected =
-                !task.jobId &&
-                error instanceof JobApiError &&
-                error.status >= 400 &&
-                error.status < 500 &&
-                error.status !== 408 &&
-                error.status !== 429
-              updates.push({
-                original: taskKey(task),
-                task: {
-                  ...task,
-                  ...(rejected ? { jobState: 'failed' as const, status: TaskStatus.FAILED } : {}),
-                  offline: !rejected,
-                  errorMessage: (error as Error).message,
-                  downloadSpeed: undefined,
-                },
-              })
+                if (!stopped)
+                  setInstallTasks((tasks) =>
+                    tasks.map((value) =>
+                      value.idempotencyKey === task.idempotencyKey && !value.jobId ? applyJob(value, job) : value,
+                    ),
+                  )
+              } catch (error) {
+                const rejected =
+                  error instanceof JobApiError &&
+                  error.status >= 400 &&
+                  error.status < 500 &&
+                  error.status !== 408 &&
+                  error.status !== 429
+                if (!stopped)
+                  setInstallTasks((tasks) =>
+                    tasks.map((value) =>
+                      value.idempotencyKey === task.idempotencyKey && !value.jobId
+                        ? {
+                            ...value,
+                            ...(rejected
+                              ? {
+                                  jobState: error instanceof JobApiError && error.status === 410 ? 'unknown' : 'failed',
+                                  status:
+                                    error instanceof JobApiError && error.status === 410
+                                      ? TaskStatus.UNKNOWN
+                                      : TaskStatus.FAILED,
+                                  submission: undefined,
+                                  retryOfJobId: undefined,
+                                  offline: false,
+                                  pendingSync: false,
+                                }
+                              : {}),
+                            errorMessage: (error as Error).message,
+                            downloadSpeed: undefined,
+                          }
+                        : value,
+                    ),
+                  )
+              }
             }
+          } catch (error) {
+            if (!stopped)
+              setInstallTasks((tasks) =>
+                tasks.map((task) =>
+                  task.ps4HostUrl === host.url
+                    ? {
+                        ...task,
+                        offline: true,
+                        pendingSync: false,
+                        errorMessage: (error as Error).message,
+                        downloadSpeed: undefined,
+                        sampleTime: undefined,
+                        sampleTransferred: undefined,
+                        progressInfo: task.progressInfo ? { ...task.progressInfo, rest_sec: 0 } : undefined,
+                      }
+                    : task,
+                ),
+              )
+          } finally {
+            checking.delete(host.id)
           }
         }),
       )
-      checking = false
       if (!stopped) {
-        setInstallTasks((previous) =>
-          previous.map((task) => updates.find((update) => update.original === taskKey(task))?.task || task),
+        const total = tasksRef.current.reduce(
+          (sum, task) => sum + (!task.offline && task.status === TaskStatus.INSTALLING ? task.downloadSpeed || 0 : 0),
+          0,
         )
-        const total = updates.reduce((sum, update) => sum + (update.task.downloadSpeed || 0), 0)
         setTotalSpeedHistory((previous) => [...previous.slice(-19), total])
       }
     }
     void poll()
-    const timer = window.setInterval(poll, 3000)
+    const timer = window.setInterval(poll, 1000)
     return () => {
       stopped = true
       clearInterval(timer)
     }
-  }, [])
-  const handleInstall = async (file: FileStat) => {
-    const host = ps4Hosts.find((host) => host.id === curSelectPs4HostId)
+  }, [ps4Hosts])
+  const handleInstall = async (file: FileStat, targetUrl?: string) => {
+    const host = ps4Hosts.find((host) => (targetUrl ? host.url === targetUrl : host.id === curSelectPs4HostId))
     if (!host) {
       openHostForm()
       return
     }
+    const requestKey = installRequestKey(file, host.url)
+    if (sendingRequests.current.has(requestKey)) return
+    sendingRequests.current.add(requestKey)
+    setSendingInstalls(new Set(sendingRequests.current))
+    const title = file.resourceMetadata?.title || file.paramSfo?.TITLE || file.basename
+    const notice = Notification.loading({ title: '正在发送安装任务…', content: title })
     try {
       const client = new ConsoleJobsClient(host.url)
       const capabilities = await client.capabilities()
@@ -262,30 +301,67 @@ export const usePS4Installer = (fileServerHostId?: string) => {
       if (!url) throw new Error('浏览器本地文件需要桌面/NAS 托管才能发送安装')
       let iconUrl: string | undefined
       const contentId = file.resourceMetadata?.contentId || file.paramSfo?.CONTENT_ID
-      if (capabilities.platform === 'ps5' && file.icon0 && contentId) {
+      if (capabilities.platform === 'ps5' && contentId) {
         try {
-          iconUrl = await uploadPS5Icon(host.url, contentId, file.icon0)
+          const icon = file.icon0 || (await libraryCover(file))?.bytes
+          if (icon) iconUrl = await uploadPS5Icon(host.url, contentId, icon)
         } catch {
           Notification.error('封面上传失败，继续提交安装')
         }
       }
+      const category = file.paramSfo?.CATEGORY
+      const kind =
+        (file.resourceKind && file.resourceKind !== 'unknown' ? file.resourceKind : undefined) ||
+        (category === 'gd' || category === 'gdn'
+          ? 'base'
+          : category === 'gp' || category === 'gpn'
+            ? 'patch'
+            : category === 'ac'
+              ? 'dlc'
+              : 'unknown')
+      const packageType = ['base', 'patch', 'dlc'].includes(kind) ? (kind as 'base' | 'patch' | 'dlc') : 'unknown'
       const submission: JobSubmission = {
         idempotencyKey: newId('install'),
+        titleId: file.resourceMetadata?.titleId || file.paramSfo?.TITLE_ID,
+        packageType,
         url,
         title: file.resourceMetadata?.title || file.paramSfo?.TITLE || file.basename,
         ...(contentId ? { contentId } : {}),
         ...(iconUrl ? { iconUrl } : {}),
+        ...(file.resourceId
+          ? {
+              resourceId: file.resourceId,
+              resource: {
+                libraryId: file.libraryId,
+                fileVersion: file.fileVersion,
+                filename: file.basename.slice(0, 255),
+                size: file.size,
+                kind: packageType,
+                version: file.resourceMetadata?.version,
+                platform:
+                  file.resourcePlatform === 'ps4' || file.resourcePlatform === 'ps5'
+                    ? file.resourcePlatform
+                    : undefined,
+                sourceName: (getInitConfigFromStore('fileServerHosts', []) as import('@/types').FileServerHost[])
+                  .find((source) => source.id === file.libraryConnectionId)
+                  ?.alias?.slice(0, 128),
+              },
+            }
+          : {}),
       }
       const task: InstallTask = {
         file: { ...file, addons: undefined, patchs: undefined },
         idempotencyKey: submission.idempotencyKey,
         submission,
+        submittedAt: Date.now(),
+        titleId: submission.titleId,
+        packageType,
         hostId: host.id,
         capabilities,
         platform: capabilities.platform,
         title: submission.title!,
         ps4HostUrl: host.url,
-        fileServerHostId: fileServerHostId || '',
+        fileServerHostId: file.libraryConnectionId || fileServerHostId || '',
         status: TaskStatus.INSTALLING,
         jobState: 'queued',
       }
@@ -298,6 +374,10 @@ export const usePS4Installer = (fileServerHostId?: string) => {
         setInstallTasks((previous) =>
           previous.map((value) => (value.idempotencyKey === task.idempotencyKey ? applyJob(value, job) : value)),
         )
+        Notification.update(notice, 'success', {
+          title: '安装任务已发送',
+          content: `${title} · 可在安装任务中查看进度`,
+        })
       } catch (error) {
         const rejected =
           error instanceof JobApiError &&
@@ -310,7 +390,7 @@ export const usePS4Installer = (fileServerHostId?: string) => {
             value.idempotencyKey === task.idempotencyKey
               ? {
                   ...value,
-                  ...(rejected ? { jobState: 'failed', status: TaskStatus.FAILED } : {}),
+                  ...(rejected ? { jobState: 'failed', status: TaskStatus.FAILED, submission: undefined } : {}),
                   offline: !rejected,
                   errorMessage:
                     (rejected ? '主机拒绝提交：' : '响应未确认；保留幂等键，重连后核对：') + (error as Error).message,
@@ -318,83 +398,79 @@ export const usePS4Installer = (fileServerHostId?: string) => {
               : value,
           ),
         )
+        Notification.update(notice, rejected ? 'error' : 'info', {
+          title: rejected ? '主机拒绝了安装任务' : '正在确认主机是否已接收',
+          content: (error as Error).message,
+        })
       }
     } catch (error) {
-      Notification.error({ title: '发送安装失败', content: (error as Error).message })
+      Notification.update(notice, 'error', { title: '发送安装失败', content: (error as Error).message })
+    } finally {
+      sendingRequests.current.delete(requestKey)
+      setSendingInstalls(new Set(sendingRequests.current))
     }
   }
   const handleChangeInstallTaskStatus = async (task: InstallTask, action: TaskActionType) => {
-    if (action === TaskActionType.DELETE) {
-      setInstallTasks((previous) => previous.filter((value) => taskKey(value) !== taskKey(task)))
-      return
-    }
-    if (action === TaskActionType.RETRY) {
-      if (!task.jobId || !canControlJob(task, 'retry')) {
-        Notification.error('无法确认的安装不能重试，请先在主机核对')
+    const key = taskKey(task)
+    if (actionRequests.current.has(key)) return
+    actionRequests.current.add(key)
+    setPendingActions((previous) => ({ ...previous, [key]: action }))
+    const feedback = taskActionFeedback[action]
+    const notice = Notification.loading({ title: feedback.pending, content: task.title || task.file.basename })
+    try {
+      if (action === TaskActionType.DELETE) {
+        if (!canDeleteTask(task)) throw new Error('请先在主机结束当前安装，再删除记录')
+        if (task.jobId) {
+          if (!task.capabilities?.deleteHistory) throw new Error('请更新 CPI 后删除主机历史记录')
+          await new ConsoleJobsClient(task.ps4HostUrl).remove(task.jobId)
+        }
+        listRevision.current++
+        const next = tasksRef.current.filter((value) => taskKey(value) !== taskKey(task))
+        persistTasks(next)
+        tasksRef.current = next
+        setInstallTasks(next)
+        Notification.update(notice, 'success', { title: feedback.success, content: task.title })
         return
       }
-      const idempotencyKey = newId('install')
-      const submission = task.submission ? { ...task.submission, idempotencyKey } : undefined
-      const retry: InstallTask = {
-        ...task,
-        jobId: undefined,
-        taskId: undefined,
-        contentId: undefined,
-        progressInfo: undefined,
-        errorMessage: undefined,
-        lastSyncedAt: undefined,
-        idempotencyKey,
-        retryOfJobId: task.jobId,
-        submission,
-        status: TaskStatus.INSTALLING,
-        jobState: 'queued',
-      }
-      try {
-        persistTasks([retry, ...tasksRef.current])
-        tasksRef.current = [retry, ...tasksRef.current]
-        setInstallTasks((previous) => [retry, ...previous])
-        const job = await new ConsoleJobsClient(task.ps4HostUrl).action(task.jobId, 'retry', idempotencyKey)
-        setInstallTasks((previous) =>
-          previous.map((value) => (value.idempotencyKey === idempotencyKey ? applyJob(value, job) : value)),
+      if (action === TaskActionType.RETRY) {
+        if (!canControlJob(task, 'retry')) throw new Error('当前任务正在进行，或主机尚未连接')
+        const file = await resolveLibraryFile(
+          { ...task.file, resourceKind: task.packageType || task.file.resourceKind },
+          task.contentId,
         )
-      } catch (error) {
-        const rejected =
-          error instanceof JobApiError &&
-          error.status >= 400 &&
-          error.status < 500 &&
-          error.status !== 408 &&
-          error.status !== 429
-        setInstallTasks((previous) =>
-          previous.map((value) =>
-            value.idempotencyKey === idempotencyKey
-              ? {
-                  ...value,
-                  ...(rejected ? { jobState: 'failed', status: TaskStatus.FAILED } : {}),
-                  offline: !rejected,
-                  errorMessage: (error as Error).message,
-                }
-              : value,
-          ),
-        )
-        Notification.error((error as Error).message)
+        if (!file) throw new Error('请连接包含此游戏的资源库，再重新安装')
+        Notification.remove(notice)
+        await handleInstall(file, task.ps4HostUrl)
+        return
       }
-      return
-    }
-    const operation = action === TaskActionType.PAUSE ? 'pause' : action === TaskActionType.RESUME ? 'resume' : 'cancel'
-    try {
+      const operation =
+        action === TaskActionType.PAUSE ? 'pause' : action === TaskActionType.RESUME ? 'resume' : 'cancel'
       if (!task.jobId || !canControlJob(task, operation)) throw new Error('此操作在当前任务状态下不可用')
       const job = await new ConsoleJobsClient(task.ps4HostUrl).action(task.jobId, operation)
       setInstallTasks((previous) =>
         previous.map((value) => (taskKey(value) === taskKey(task) ? applyJob(value, job) : value)),
       )
+      Notification.update(notice, 'success', { title: feedback.success, content: task.title || task.file.basename })
     } catch (error) {
-      Notification.error((error as Error).message)
+      Notification.update(notice, 'error', { title: feedback.error, content: (error as Error).message })
+    } finally {
+      actionRequests.current.delete(key)
+      setPendingActions((previous) => {
+        const next = { ...previous }
+        delete next[key]
+        return next
+      })
     }
   }
   return {
     installTasks,
     totalSpeedHistory,
     handleInstall,
+    isSendingInstall: (file: FileStat, targetUrl?: string) => {
+      const host = ps4Hosts.find((host) => (targetUrl ? host.url === targetUrl : host.id === curSelectPs4HostId))
+      return !!host && sendingInstalls.has(installRequestKey(file, host.url))
+    },
+    pendingActions,
     ps4Hosts,
     curSelectPs4HostId,
     setPs4Hosts,

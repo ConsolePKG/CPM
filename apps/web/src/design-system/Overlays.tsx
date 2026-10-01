@@ -101,6 +101,7 @@ export function ConfirmDialog({
   onCancel,
   onConfirm,
   confirmText = '删除',
+  loading = false,
 }: {
   visible: boolean
   title: string
@@ -108,6 +109,7 @@ export function ConfirmDialog({
   onCancel: () => void
   onConfirm: () => void
   confirmText?: string
+  loading?: boolean
 }) {
   return (
     <AlertDialog.Root
@@ -122,8 +124,10 @@ export function ConfirmDialog({
           <AlertDialog.Title>{title}</AlertDialog.Title>
           <AlertDialog.Description>{description}</AlertDialog.Description>
           <footer>
-            <Button onClick={onCancel}>取消</Button>
-            <Button variant="danger" onClick={onConfirm}>
+            <Button disabled={loading} onClick={onCancel}>
+              取消
+            </Button>
+            <Button variant="danger" loading={loading} onClick={onConfirm}>
               {confirmText}
             </Button>
           </footer>

@@ -115,10 +115,22 @@ export type InstallTask = {
   submission?: import('@/service/jobs').JobSubmission
   capabilities?: import('@/service/jobs').JobCapabilities
   lastSyncedAt?: number
+  lastObservedAt?: number
+  nativeSampleId?: number
+  nativeSessionId?: number
+  titleId?: string
+  packageType?: import('@/service/jobs').JobResource['kind']
+  queryError?: string
+  submittedAt?: number
+  pendingSync?: boolean
+  resourceUnavailable?: boolean
+  sourceName?: string
   offline?: boolean
   contentId?: string
   platform?: 'ps4' | 'ps5'
   nativeState?: string
+  activity?: 'active' | 'idle' | 'unknown'
+  supersededBy?: string
   title: string
   ps4HostUrl: string
   fileServerHostId: string

@@ -1,10 +1,25 @@
 import { describe, expect, it } from '@rstest/core'
 import { createServer } from 'node:http'
 import { createProtocolMock } from '../mock/protocol.mjs'
-import { ConsoleJobsClient } from '../src/service/jobs'
+import { ConsoleJobsClient, JobApiError } from '../src/service/jobs'
 import { RemoteLibraryClient } from '../../../packages/library/src/client'
 
 describe('real clients consume deterministic protocol mocks', () => {
+  it('identifies the CPI connection when the network request fails', async () => {
+    const client = new ConsoleJobsClient('http://192.0.2.1:12801', async () => {
+      throw new TypeError('Failed to fetch')
+    })
+    await expect(client.capabilities()).rejects.toThrow('无法连接 CPI（http://192.0.2.1:12801）')
+  })
+  it('explains active installation conflicts and preserves the rejection status', async () => {
+    const client = new ConsoleJobsClient('http://console', async () =>
+      Response.json({ message: 'Content has an active installation' }, { status: 409 }),
+    )
+    const error = await client.submit({ idempotencyKey: 'new', url: 'http://library/game.pkg' }).catch((error) => error)
+    expect(error).toBeInstanceOf(JobApiError)
+    expect(error.status).toBe(409)
+    expect(error.message).toContain('正在提交或安装')
+  })
   it('serves scoped HEAD/Range downloads and rejects access after share revocation', async () => {
     const mock = createProtocolMock({
       files: [{ basename: 'game.pkg', size: 1000, paramSfo: { TITLE: 'Game', TITLE_ID: 'CUSA12345' } }],
@@ -83,8 +98,15 @@ describe('real clients consume deterministic protocol mocks', () => {
         clock = time
         expect((await host.get(first.jobId)).state).toBe(state)
       }
+      await expect(host.remove(first.jobId)).resolves.toMatchObject({ deleted: true })
+      expect((await host.list()).items).toEqual([])
+      await expect(host.get(first.jobId)).rejects.toThrow('Job not found')
+      await expect(host.submit(submission)).rejects.toThrow('此安装记录已删除')
+      expect(mock.jobs.size).toBe(0)
+      await expect(host.remove(first.jobId)).resolves.toMatchObject({ deleted: true })
       const second = await host.submit({ ...submission, idempotencyKey: 'two' })
       expect(second.jobId).not.toBe(first.jobId)
+      await expect(host.remove(second.jobId)).rejects.toThrow('active')
       mock.fail(second.jobId)
       expect((await host.get(second.jobId)).state).toBe('failed')
       const retried = await host.action(second.jobId, 'retry', 'retry-two')

@@ -4,6 +4,7 @@ import type { FileStat } from '@/types'
 import { Button, Empty, Spin } from '@/design-system'
 import { formatFileSize, formatPkgName } from '@/utils'
 import { GameActions } from './GameActions'
+import { useContainer } from '@/store/container'
 export type TableListProps = {
   handleInstallByActionType: (file: FileStat, action: PkgListClickAction) => void
   displayPkgRawTitle?: boolean
@@ -17,6 +18,9 @@ export const TableList = memo(function TableList({
   displayPkgRawTitle,
   handleInstallByActionType,
 }: TableListProps) {
+  const {
+    ps4Installer: { isSendingInstall },
+  } = useContainer()
   if (loading) return <Spin tip="正在读取游戏库目录…" />
   if (!data.length) return <Empty description="没有找到符合条件的游戏" />
   return (
@@ -34,7 +38,11 @@ export const TableList = memo(function TableList({
             <tr key={file.filename}>
               <td>
                 <GameActions file={file} onAction={handleInstallByActionType}>
-                  <Button variant="text" onClick={() => handleInstallByActionType(file, PkgListClickAction.auto)}>
+                  <Button
+                    variant="text"
+                    loading={isSendingInstall(file)}
+                    onClick={() => handleInstallByActionType(file, PkgListClickAction.auto)}
+                  >
                     {formatPkgName(file, displayPkgRawTitle)}
                   </Button>
                 </GameActions>

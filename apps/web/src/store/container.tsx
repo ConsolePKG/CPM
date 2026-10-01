@@ -19,7 +19,7 @@ const useHook = () => {
     if (curFileServerHost?.type === FileServerType.StaticFileServer) {
       file.downloadUrl = curFileServerHost.url + encodeURI(file.filename.replace(/\\/g, '/'))
     }
-    ps4Installer.handleInstall(file)
+    return ps4Installer.handleInstall(file)
   }
 
   return {

@@ -16,6 +16,18 @@ const notify = (type: string, notice: Notice) => {
   })
 }
 export const Notification = {
+  loading: (notice: Notice) =>
+    notify('loading', { ...(typeof notice === 'string' ? { content: notice } : notice), duration: 0 }),
+  update: (id: string, type: 'success' | 'error' | 'info', notice: Notice) => {
+    const config = typeof notice === 'string' ? { content: notice } : notice
+    manager.update(id, {
+      title: config.title,
+      description: config.content,
+      type,
+      timeout: (config.duration ?? 5) * 1000,
+      priority: type === 'error' ? 'high' : 'low',
+    })
+  },
   success: (notice: Notice) => notify('success', notice),
   error: (notice: Notice) => notify('error', notice),
   info: (notice: Notice) => notify('info', notice),
@@ -31,6 +43,7 @@ function Toasts() {
         {toasts.map((toast) => (
           <Toast.Root key={toast.id} toast={toast} className="cpm-toast" data-kind={toast.type}>
             <Toast.Content>
+              {toast.type === 'loading' && <span className="cpm-spinner cpm-toast-spinner" aria-hidden="true" />}
               <Toast.Title className="cpm-toast-title" />
               <Toast.Description className="cpm-toast-description" />
               <Toast.Close className="cpm-toast-close" aria-label="关闭通知">

@@ -4,6 +4,7 @@ import type { ReactElement } from 'react'
 import type { FileStat } from '@/types'
 import { retryLibraryFile } from '@/library/runtime'
 import { Notification } from '@/components/ui'
+import { useContainer } from '@/store/container'
 export function GameActions({
   file,
   onAction,
@@ -13,6 +14,10 @@ export function GameActions({
   onAction: (file: FileStat, action: PkgListClickAction) => void
   children: ReactElement
 }) {
+  const {
+    ps4Installer: { isSendingInstall },
+  } = useContainer()
+  const sending = isSendingInstall(file)
   if (file.type === 'directory') return children
   return (
     <ContextMenu.Root>
@@ -25,10 +30,10 @@ export function GameActions({
             </ContextMenu.Item>
             <ContextMenu.Item
               className="cpm-option"
-              disabled={!!file.resourceId && !['ready', 'partial'].includes(file.parseState || '')}
+              disabled={sending || (!!file.resourceId && !['ready', 'partial'].includes(file.parseState || ''))}
               onClick={() => onAction(file, PkgListClickAction.install)}
             >
-              安装游戏
+              {sending ? '正在发送…' : '安装游戏'}
             </ContextMenu.Item>
             {file.resourceId && file.parseState === 'failed' && (
               <ContextMenu.Item
