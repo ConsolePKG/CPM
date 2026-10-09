@@ -3,6 +3,7 @@
 }
 body:has(.app-shell-desktop) {
   --header-height: 56px;
+  --library-toolbar-height: 52px;
 }
 // One continuous glass surface avoids a blur seam between the two sticky rows.
 .app-shell::before {
@@ -34,44 +35,61 @@ body:has(.app-shell-desktop) {
 }
 .app-shell-desktop .app-header {
   grid-template-columns: minmax(0, 1fr) auto;
-  border-bottom: 1px solid var(--line);
 }
 .app-shell-desktop .app-tabs {
   grid-column: 1;
   justify-self: start;
-  align-self: stretch;
+  align-self: center;
   gap: 4px;
 }
 .app-shell-desktop .app-tabs a {
-  padding: 0 14px;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-  font-size: 14px;
+  min-height: 32px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 13px;
   font-weight: 550;
+  transition:
+    background var(--motion-fast),
+    color var(--motion-fast);
 }
 .app-shell-desktop .app-tabs a:hover {
-  background: transparent;
+  background: color-mix(in srgb, var(--text), transparent 96%);
   color: var(--text);
 }
 .app-shell-desktop .app-tabs a.active {
-  background: transparent;
+  background: color-mix(in srgb, var(--text), transparent 92%);
   color: var(--text);
-  border-bottom-color: var(--text);
-  font-weight: 650;
 }
 .app-shell-desktop .app-header-actions {
   grid-column: 2;
-  gap: 4px;
+  gap: 8px;
 }
 .app-shell-desktop .host-trigger {
-  height: 36px;
-  min-height: 36px;
-  padding: 6px 12px;
+  height: 32px;
+  min-height: 32px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 12px;
+  gap: 8px;
 }
 .app-shell-desktop .app-header-actions > .cpm-icon-button {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
   padding: 8px;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+}
+.app-shell-desktop .app-header-actions .cpm-button svg {
+  width: 16px;
+  height: 16px;
+}
+.app-shell-desktop .app-header-actions .cpm-button:hover {
+  background: color-mix(in srgb, var(--text), transparent 94%);
+  color: var(--text);
+  box-shadow: none;
 }
 .app-shell-mac .app-header {
   padding-left: max(var(--page-gutter), 90px);
@@ -247,9 +265,9 @@ body:has(.settings-screen, .game-page) .app-shell.app-shell-mac > .app-header {
 // Recede the visible page without transforming the shell or header, which
 // contain the viewport-fixed glass surface and the mobile navigation.
 .app-content,
-.app-brand,
-.app-header-actions,
-.app-tabs {
+.app-shell > .app-header .app-brand,
+.app-shell > .app-header .app-header-actions,
+.app-shell > .app-header .app-tabs {
   transition:
     scale 180ms cubic-bezier(0.25, 0.1, 0.25, 1),
     translate 180ms cubic-bezier(0.25, 0.1, 0.25, 1);
@@ -263,25 +281,25 @@ body:has(.settings-screen:not([data-closing]), .game-page:not([data-closing])) {
     translate: 0 6px;
     transition-duration: 200ms;
   }
-  .app-brand,
-  .app-header-actions,
-  .app-tabs {
+  .app-shell > .app-header .app-brand,
+  .app-shell > .app-header .app-header-actions,
+  .app-shell > .app-header .app-tabs {
     scale: 0.96;
     transition-duration: 200ms;
   }
 }
 @media (prefers-reduced-motion: reduce) {
   .app-content,
-  .app-brand,
-  .app-header-actions,
-  .app-tabs {
+  .app-shell > .app-header .app-brand,
+  .app-shell > .app-header .app-header-actions,
+  .app-shell > .app-header .app-tabs {
     transition: none;
   }
   body:has(.settings-screen, .game-page) {
     .app-content,
-    .app-brand,
-    .app-header-actions,
-    .app-tabs {
+    .app-shell > .app-header .app-brand,
+    .app-shell > .app-header .app-header-actions,
+    .app-shell > .app-header .app-tabs {
       scale: none;
       translate: none;
     }

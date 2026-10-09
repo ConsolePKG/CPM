@@ -30,7 +30,11 @@ export function filterLibrary(
         !isSystemMetadataPath(file.basename) &&
         (!text ||
           file.basename.toLocaleLowerCase().includes(text) ||
-          (file.resourceMetadata?.title || file.paramSfo?.TITLE)?.toLocaleLowerCase().includes(text)) &&
+          [
+            file.resourceMetadata?.title || file.paramSfo?.TITLE,
+            file.resourceMetadata?.titleId || file.paramSfo?.TITLE_ID,
+            file.resourceMetadata?.contentId || file.paramSfo?.CONTENT_ID,
+          ].some((value) => value?.toLocaleLowerCase().includes(text))) &&
         (category === 'all' || file.type === 'directory' || categoryOf(file) === category),
     )
     .sort((a, b) => {

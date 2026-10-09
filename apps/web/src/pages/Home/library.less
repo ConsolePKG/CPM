@@ -11,11 +11,14 @@
   padding: 6px var(--page-gutter);
 }
 .app-shell-desktop .library-toolbar {
-  margin-bottom: 20px;
-  border-bottom: 1px solid var(--line);
+  margin-bottom: 24px;
+  padding-block: 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line), transparent 50%);
 }
-.app-shell-mac .library-toolbar {
-  padding-left: max(var(--page-gutter), 90px);
+.app-shell-desktop .library-toolbar .cpm-button,
+.app-shell-desktop .library-toolbar .cpm-select,
+.app-shell-desktop .library-search .cpm-input-shell {
+  border-radius: 8px;
 }
 .library-category.cpm-button {
   height: 36px;
@@ -33,24 +36,73 @@
   flex-shrink: 0;
 }
 .app-shell-desktop .library-category {
-  margin-left: -12px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 8px;
+  margin-left: -8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.app-shell-desktop .library-category > svg {
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
 }
 .app-shell-desktop .library-count {
-  padding: 2px 7px;
-  border-radius: var(--radius-pill);
-  background: var(--surface-2);
+  padding: 0;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
 }
 .app-shell-desktop .library-search .cpm-input-shell {
-  height: 36px;
+  height: 32px;
+  width: 240px;
+  border-color: color-mix(in srgb, var(--line), transparent 50%);
+  background: color-mix(in srgb, var(--text), transparent 96%);
+}
+.app-shell-desktop .library-search .cpm-input-shell:focus-within {
+  border-color: var(--accent);
+}
+.app-shell-desktop .library-search .cpm-input {
+  padding: 6px 10px;
+  font-size: 12px;
 }
 .app-shell-desktop .library-toolbar .cpm-select {
-  height: 36px;
-  min-height: 36px;
+  height: 32px;
+  min-height: 32px;
+  font-size: 12px;
+  color: var(--muted);
 }
 .app-shell-desktop .library-toolbar-right > .cpm-icon-button {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
   padding: 8px;
+  color: var(--muted);
+}
+.app-shell-desktop .library-toolbar-right > .cpm-icon-button svg {
+  width: 16px;
+  height: 16px;
+}
+.app-shell-desktop .library-path {
+  border: 0;
+  padding-left: 4px;
+  gap: 4px;
+}
+.app-shell-desktop .library-path::before {
+  content: '';
+  flex: none;
+  width: 3px;
+  height: 3px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+  opacity: 0.45;
+}
+.app-shell-desktop .library-path .cpm-button {
+  min-height: 28px;
+  padding: 4px 6px;
 }
 .library-toolbar-left,
 .library-toolbar-right {
@@ -224,6 +276,9 @@
   aspect-ratio: 1;
   border-radius: var(--radius-sm);
   background: linear-gradient(145deg, var(--surface-2), var(--surface));
+  transition:
+    box-shadow var(--motion-fast),
+    transform var(--motion-fast);
 }
 .game-cover > img {
   width: 100%;
@@ -261,6 +316,9 @@
 .game-cover-placeholder span {
   font-size: 12px;
 }
+.game-cover-platform {
+  display: none;
+}
 .game-cover-action {
   position: absolute;
   bottom: 16px;
@@ -282,7 +340,6 @@
 .game-card:focus-visible {
   outline: none;
 }
-.game-card:hover .game-cover,
 .game-card:focus-visible .game-cover {
   outline: 2px solid var(--accent);
   outline-offset: 5px;
@@ -297,14 +354,102 @@
   font-size: 14px;
   font-weight: 550;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  min-height: 2.8em;
+  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .game-card small {
   color: var(--muted);
   font-weight: 400;
   font-size: 12px;
   margin-top: 4px;
+}
+.app-shell-desktop .game-cover-caption {
+  position: absolute;
+  inset: auto 10px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  z-index: 2;
+  pointer-events: none;
+}
+.app-shell-desktop .game-cover-platform,
+.app-shell-desktop .game-cover-action {
+  border: 1px solid rgb(255 255 255 / 24%);
+  background: rgb(18 18 24 / 78%);
+  color: #fff;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 2px 8px #0002;
+  font-size: 10px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+.app-shell-desktop .game-cover-platform {
+  display: inline-flex;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-weight: 650;
+}
+.app-shell-desktop .game-cover-action {
+  position: static;
+  margin-left: auto;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+.app-shell-desktop .game-card .game-cover {
+  --cover-highlight-x: 50%;
+  --cover-highlight-y: 15%;
+  isolation: isolate;
+  transition:
+    box-shadow 240ms ease,
+    transform 240ms cubic-bezier(0.2, 0.65, 0.3, 1);
+}
+.app-shell-desktop .game-card .game-cover::before,
+.app-shell-desktop .game-card .game-cover::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 240ms ease;
+}
+.app-shell-desktop .game-card .game-cover::before {
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(
+      ellipse at var(--cover-highlight-x) var(--cover-highlight-y),
+      rgb(255 255 255 / 28%),
+      rgb(255 255 255 / 8%) 35%,
+      transparent 70%
+    ),
+    linear-gradient(135deg, rgb(255 255 255 / 12%), transparent 45%, rgb(255 255 255 / 3%));
+}
+.app-shell-desktop .game-card .game-cover::after {
+  inset: -3px;
+  padding: 1.5px;
+  border-radius: calc(var(--radius-sm) + 3px);
+  background:
+    radial-gradient(
+      ellipse at var(--cover-highlight-x) var(--cover-highlight-y),
+      #fff,
+      rgb(255 255 255 / 65%) 25%,
+      transparent 65%
+    ),
+    linear-gradient(135deg, rgb(255 255 255 / 55%), transparent 45%, rgb(255 255 255 / 25%)), var(--interaction-ring);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+.app-shell-desktop .game-card:not(:disabled):focus-visible .game-cover::before,
+.app-shell-desktop .game-card:not(:disabled):focus-visible .game-cover::after {
+  opacity: 1;
 }
 .game-context {
   min-width: 160px;
@@ -895,5 +1040,40 @@
   }
   .trophy-count {
     justify-content: flex-start;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .game-card:not(:disabled):hover .game-cover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 8px 24px #0003,
+      0 0 0 1px color-mix(in srgb, var(--text), transparent 80%);
+  }
+  .app-shell-desktop .game-card:not(:disabled):hover .game-cover {
+    transform: translateY(-3px) scale(1.015);
+    box-shadow:
+      0 12px 28px #0004,
+      0 0 24px 2px var(--interaction-glow);
+  }
+  .app-shell-desktop .game-card:not(:disabled):hover .game-cover::before,
+  .app-shell-desktop .game-card:not(:disabled):hover .game-cover::after {
+    opacity: 1;
+  }
+  .app-shell-desktop .game-card:not(:disabled):active .game-cover {
+    transform: translateY(-1px) scale(1.005);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-card .game-cover,
+  .game-card .game-cover::before,
+  .game-card .game-cover::after,
+  .game-cover-action {
+    transition: none;
+  }
+  .game-card:not(:disabled):hover .game-cover,
+  .app-shell-desktop .game-card:not(:disabled):hover .game-cover,
+  .app-shell-desktop .game-card:not(:disabled):active .game-cover {
+    transform: none;
   }
 }

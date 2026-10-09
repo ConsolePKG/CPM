@@ -10,11 +10,11 @@ import { loadPkgResource, resourceKey, type PkgResources, type ResourceKind } fr
 const imageBasename = (name: string) => name.split(/[\\/]/).pop() || name
 const artworkPriority = (name: string) => {
   const basename = imageBasename(name)
-  if (/^pic1(?:_\d+)?\.png$/i.test(basename)) return 0
-  if (/^pic0(?:_\d+)?\.png$/i.test(basename)) return 1
+  if (/^pic1(?:_\d+)?\.(png|dds)$/i.test(basename)) return 0
+  if (/^pic0(?:_\d+)?\.(png|dds)$/i.test(basename)) return 1
   return 2
 }
-const artworkVariant = (name: string) => (/_\d+\.png$/i.test(imageBasename(name)) ? 1 : 0)
+const artworkVariant = (name: string) => (/_\d+\.(png|dds)$/i.test(imageBasename(name)) ? 1 : 0)
 function ArtworkBrowser({
   file,
   artwork,
@@ -27,7 +27,12 @@ function ArtworkBrowser({
   prefix: string
 }) {
   const images = artwork
-    .filter((entry) => /^pic.*\.png$/i.test(imageBasename(entry.name)))
+    .filter((entry) => /^pic.*\.(png|dds)$/i.test(imageBasename(entry.name)))
+    .filter(
+      (entry, _, all) =>
+        !/\.dds$/i.test(entry.name) ||
+        !all.some((other) => other.name.toLowerCase() === entry.name.toLowerCase().replace(/\.dds$/, '.png')),
+    )
     .sort(
       (a, b) =>
         artworkPriority(a.name) - artworkPriority(b.name) ||
@@ -154,7 +159,7 @@ export function PkgResourcePanel({ file, kind, active }: { file: FileStat; kind:
     return () => controller.abort()
   }, [key, kind, active, attempt])
   const current = state?.key === key ? state : undefined
-  const prefix = (file.paramSfo?.TITLE_ID || file.basename).replace(/[^\w.-]/g, '_')
+  const prefix = (file.resourceMetadata?.titleId || file.paramSfo?.TITLE_ID || file.basename).replace(/[^\w.-]/g, '_')
   const renderContent = () => {
     if (current?.error)
       return (

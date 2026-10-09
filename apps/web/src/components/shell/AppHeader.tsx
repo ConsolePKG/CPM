@@ -1,13 +1,13 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useRef } from 'react'
-import { Settings, Grid, Download } from 'react-feather'
+import { Settings, Grid, Download, X } from 'react-feather'
 import { IconButton } from '@/design-system'
 import { useContainer } from '@/store/container'
 import Logo from '@/assets/icon.svg'
 import { isPlayStationBrowser } from '@/utils/browser'
 import { recordLibraryDiagnostics } from '@/utils/libraryDiagnostics'
 import { HostSwitcher } from './HostSwitcher'
-export function AppHeader() {
+export function AppHeader({ onClose }: { onClose?: () => void } = {}) {
   const navigate = useNavigate()
   const location = useLocation()
   const { settings } = useContainer()
@@ -75,6 +75,11 @@ export function AppHeader() {
         >
           <Settings />
         </IconButton>
+        {onClose && (
+          <IconButton label="关闭游戏详情" variant="text" onClick={onClose}>
+            <X />
+          </IconButton>
+        )}
       </div>
     </header>
   )

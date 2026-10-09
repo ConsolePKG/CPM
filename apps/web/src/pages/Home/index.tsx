@@ -8,6 +8,7 @@ import { CardList } from './components/CardList'
 import { TableList } from './components/TableList'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { filterLibrary, type ContentFilter, type LibrarySort } from './library'
+import { gameDetailPath } from './gameDetailRoute'
 import './library.less'
 export function Home() {
   const {
@@ -39,7 +40,7 @@ export function Home() {
         (action === PkgListClickAction.auto && settings.pkgListClickAction === PkgListClickAction.install)
       )
         void handleInstallRef.current(file)
-      else navigate('/game', { state: { backgroundLocation: location, file, detailOrder } })
+      else navigate(gameDetailPath(file), { state: { backgroundLocation: location, file, detailOrder } })
     },
     [detailOrder, location, navigate, setPaths, settings.pkgListClickAction],
   )

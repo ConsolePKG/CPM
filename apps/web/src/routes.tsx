@@ -38,7 +38,9 @@ export const useRouterElement = () => {
   return (
     <>
       <div className={isPlayStationBrowser && (isGame || isSettings) ? 'ps4-background-page' : undefined}>{main}</div>
-      {isGame && <GameDetailPage data={gameState?.file} hasBackground={Boolean(gameState?.backgroundLocation)} />}
+      {isGame && (
+        <GameDetailPage detailLocation={contentLocation} hasBackground={Boolean(gameState?.backgroundLocation)} />
+      )}
       {isSettings && <Settings />}
     </>
   )

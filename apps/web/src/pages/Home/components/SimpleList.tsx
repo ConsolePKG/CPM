@@ -1,3 +1,4 @@
+import { pkgInfo } from '../pkgMetadata'
 import { PkgListClickAction } from 'common/types/configStore'
 import { Button, Empty } from '@/design-system'
 import { formatFileSize, formatPkgName } from '@/utils'
@@ -22,9 +23,9 @@ export function SimpleList({
           <div className="related-package-info">
             <strong>{formatPkgName(file, true)}</strong>
             <small>
-              {file.paramSfo?.APP_VER || file.paramSfo?.VERSION || '—'} · {formatFileSize(file.size)}
+              {pkgInfo(file).version || pkgInfo(file).masterVersion || '—'} · {formatFileSize(file.size)}
             </small>
-            <small>{file.paramSfo?.CONTENT_ID}</small>
+            <small>{pkgInfo(file).contentId}</small>
           </div>
           <Button
             loading={isSendingInstall(file)}

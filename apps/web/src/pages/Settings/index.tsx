@@ -121,6 +121,7 @@ export const Settings = () => {
                         key={item.id}
                         variant="text"
                         className={section === item.id ? 'is-active' : ''}
+                        aria-current={section === item.id ? 'page' : undefined}
                         onClick={() => navigate(`/settings/${item.id}`, { replace: true, state })}
                       >
                         {item.title}

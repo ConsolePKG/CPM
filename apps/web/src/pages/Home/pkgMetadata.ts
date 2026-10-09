@@ -1,3 +1,42 @@
+import type { FileStat } from '@/types'
+
+/** PS5 firmware is a 64-bit hex string; never round it through Number. */
+export function formatPs5SystemVersion(value: unknown): string {
+  if (typeof value !== 'string' || !value) return '—'
+  const hex = /^(?:0x)?(\d{4})[\da-f]{12}$/i.exec(value)
+  return hex ? `${Number(hex[1].slice(0, 2))}.${hex[1].slice(2)}` : value
+}
+export function pkgInfo(file?: FileStat) {
+  const metadata = file?.resourceMetadata
+  const sfo = file?.paramSfo
+  const ps5 = file?.resourcePlatform === 'ps5' || metadata?.platform === 'ps5'
+  const kind = metadata?.kind || file?.resourceKind
+  return {
+    ps5,
+    platform: ps5
+      ? 'PS5'
+      : file?.resourcePlatform && file.resourcePlatform !== 'ps4'
+        ? file.resourcePlatform.toUpperCase()
+        : sfo
+          ? 'PS4'
+          : '—',
+    title: metadata?.title || sfo?.TITLE,
+    titleId: metadata?.titleId || sfo?.TITLE_ID,
+    contentId: metadata?.contentId || sfo?.CONTENT_ID,
+    version: metadata?.version || sfo?.APP_VER,
+    masterVersion: metadata?.masterVersion || sfo?.VERSION,
+    category:
+      kind && kind !== 'unknown'
+        ? { base: '游戏本体', patch: '游戏补丁', dlc: '追加内容（DLC）' }[kind]
+        : formatPkgCategory(sfo?.CATEGORY),
+    isDlc: kind === 'dlc' || sfo?.CATEGORY === 'ac',
+    systemVersion: ps5
+      ? formatPs5SystemVersion(metadata?.requiredSystemVersion || metadata?.raw.requiredSystemSoftwareVersion)
+      : formatSystemVersion(sfo?.SYSTEM_VER),
+    raw: metadata?.raw || sfo || {},
+  }
+}
+
 /** SYSTEM_VER stores decimal digits in the high two bytes, e.g. 0x09000000. */
 export function formatSystemVersion(value: string | number | undefined): string {
   if (value === undefined || value === '') return '—'

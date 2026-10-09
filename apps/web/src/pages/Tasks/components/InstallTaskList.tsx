@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Button, Empty } from '@/design-system'
 import { useContainer } from '@/store/container'
 import { TaskActionType, TaskStatus } from '@/types'
@@ -26,6 +27,10 @@ export function InstallTaskList() {
   ]
   return (
     <section className="tasks-page" aria-label="安装任务">
+      <header className="tasks-heading">
+        <h1>安装任务</h1>
+        <p>查看下载进度与主机安装状态。</p>
+      </header>
       <div className="task-summary">
         <div>
           <span>总下载速度</span>
@@ -57,7 +62,7 @@ export function InstallTaskList() {
             <small>项</small>
           </strong>
         </div>
-        <SpeedChart samples={totalSpeedHistory} />
+        {!!downloading.length && <SpeedChart samples={totalSpeedHistory} />}
         {installTasks.some((task) => task.capabilities?.pause) && (
           <Button
             loading={busy}
@@ -95,7 +100,13 @@ export function InstallTaskList() {
           </section>
         ) : null
       })}
-      {!installTasks.length && <Empty description="暂无安装任务，可从游戏库发送安装。" />}
+      {!installTasks.length && (
+        <Empty description="暂无安装任务，选择游戏后即可发送到主机。">
+          <Link className="cpm-button cpm-button-primary" to="/">
+            浏览游戏库
+          </Link>
+        </Empty>
+      )}
     </section>
   )
 }

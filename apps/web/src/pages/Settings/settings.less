@@ -80,7 +80,7 @@ body:has(.app-shell-desktop) .settings-brand {
   min-width: 0;
 }
 .settings-body > * {
-  max-width: 1080px;
+  max-width: 880px;
   margin-inline: auto;
 }
 .settings-title {
@@ -88,8 +88,10 @@ body:has(.app-shell-desktop) .settings-brand {
   font-weight: 650;
 }
 .settings-description {
-  margin-top: 16px;
-  margin-bottom: 36px;
+  margin-top: 10px;
+  margin-bottom: 28px;
+  font-size: 13px;
+  line-height: 1.6;
   color: var(--muted);
 }
 .settings-close {
@@ -166,5 +168,45 @@ body:has(.app-shell-desktop) .settings-brand {
   }
   body:not(:has(.app-shell-desktop)) .settings-close small {
     display: none;
+  }
+}
+
+body:has(.app-shell-desktop) {
+  .settings-nav-group .cpm-button {
+    min-height: 36px;
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+  }
+  .settings-nav-group .is-active {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .settings-body .cpm-setting-row {
+    padding: 22px 0;
+    gap: 24px;
+  }
+  .settings-body .cpm-setting-row h3 {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .settings-body .cpm-setting-row p {
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .settings-screen > .settings-close {
+    top: calc((var(--header-height) - 36px) / 2);
+  }
+  .settings-screen > .settings-close .cpm-icon-button {
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+    padding: 8px;
+    border-color: transparent;
+    border-radius: var(--radius-md);
+    color: var(--muted);
+  }
+  .settings-screen > .settings-close small {
+    width: 36px;
   }
 }

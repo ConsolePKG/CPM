@@ -6,25 +6,34 @@ import { isPlayStationBrowser } from '@/utils/browser'
 import { Tabs } from '@base-ui/react/tabs'
 import { Dialog } from '@base-ui/react/dialog'
 import { useReducedMotion } from 'framer-motion'
-import { ArrowLeft, ChevronLeft, ChevronRight, X, Download, Copy } from 'react-feather'
+import { X, Download, Copy } from 'react-feather'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, type Location } from 'react-router-dom'
 import { PkgListClickAction } from 'common/types/configStore'
-import { Button, IconButton, Disclosure } from '@/design-system'
+import { Button, IconButton, Disclosure, Spin, Empty } from '@/design-system'
 import { useContainer } from '@/store/container'
 import type { GameLocationState } from '@/routes'
 import type { FileStat } from '@/types'
 import { formatFileSize, formatPkgName } from '@/utils'
 import { GameCover } from './GameCover'
+import { GameLibrarySidebar } from './GameLibrarySidebar'
 import { HeroArtwork } from './HeroArtwork'
 import { IconColorBackdrop } from './IconColorBackdrop'
 import { SimpleList } from './SimpleList'
 import { PkgResourcePanel } from './PkgResourcePanel'
-import { formatPkgCategory, formatSystemVersion } from '../pkgMetadata'
+import { pkgInfo } from '../pkgMetadata'
 import { loadPkgResource, resourceKey } from '../pkgResources'
+import { gameDetailPath, readGameReference } from '../gameDetailRoute'
+import { useGameDetailFile } from '../useGameDetailFile'
 import './gameDetail.less'
 
-export function GameDetailPage({ data, hasBackground }: { data?: FileStat; hasBackground: boolean }) {
+export function GameDetailPage({
+  detailLocation,
+  hasBackground,
+}: {
+  detailLocation: Location
+  hasBackground: boolean
+}) {
   const {
     settings,
     handleInstall,
@@ -34,23 +43,28 @@ export function GameDetailPage({ data, hasBackground }: { data?: FileStat; hasBa
   const displayPkgRawTitle = settings.displayPkgRawTitle
   const navigate = useNavigate()
   const location = useLocation()
-  const locationState = location.state as GameLocationState | null
+  const locationState = detailLocation.state as GameLocationState | null
+  const { file: data, loading: loadingDetail } = useGameDetailFile(
+    detailLocation.search,
+    fileServer.fileServerFiles,
+    locationState?.file,
+    fileServer.loading || fileServer.pending,
+  )
   const [open, setOpen] = useState(true)
   const prefersReducedMotion = useReducedMotion()
   const reduceMotion = prefersReducedMotion || isPlayStationBrowser
   const [copyStatus, setCopyStatus] = useState('')
-  const [compactIdentity, setCompactIdentity] = useState(false)
-  const [libraryOpen, setLibraryOpen] = useState(false)
   const [tab, setTab] = useState<string | number>('info')
   const [art, setArt] = useState<{ key: string; url: string }>()
   const returnFocus = useRef(document.activeElement as HTMLElement | null)
   const scroll = useRef<HTMLDivElement>(null)
-  const hero = useRef<HTMLElement>(null)
-  const libraryList = useRef<HTMLDivElement>(null)
   const key = data ? resourceKey(data) : ''
   const siblings = useMemo(() => {
     const files = new Map(fileServer.fileServerFiles.map((file) => [file.filename, file]))
-    return (locationState?.detailOrder || []).flatMap((filename) => {
+    return (
+      locationState?.detailOrder ||
+      fileServer.fileServerFiles.filter((file) => file.type !== 'directory').map((file) => file.filename)
+    ).flatMap((filename) => {
       const file = files.get(filename)
       return file ? [file] : []
     })
@@ -58,7 +72,8 @@ export function GameDetailPage({ data, hasBackground }: { data?: FileStat; hasBa
   const siblingIndex = siblings.findIndex((file) => file.filename === data?.filename)
   const previousGame = siblingIndex > 0 ? siblings[siblingIndex - 1] : undefined
   const nextGame = siblingIndex >= 0 ? siblings[siblingIndex + 1] : undefined
-  const isDlc = data?.paramSfo?.CATEGORY === 'ac'
+  const info = pkgInfo(data)
+  const isDlc = info.isDlc
   const artUrl = !isDlc && art?.key === key ? art.url : undefined
   const title = formatPkgName(data, displayPkgRawTitle)
   const transition = { duration: reduceMotion ? 0 : open ? 0.2 : 0.18, ease: [0.25, 0.1, 0.25, 1] as const }
@@ -71,21 +86,35 @@ export function GameDetailPage({ data, hasBackground }: { data?: FileStat; hasBa
     else navigate('/', { replace: true })
   }
   const switchGame = (file: FileStat) => {
-    navigate('/game', { replace: true, state: { ...locationState, file } })
+    navigate(gameDetailPath(file), { replace: true, state: { ...locationState, file } })
   }
   const handleInstallByActionType = (file: FileStat, action: PkgListClickAction) => {
     if (action === PkgListClickAction.install) void handleInstall(file)
   }
   useEffect(() => {
+    const source = readGameReference(detailLocation.search)?.libraryConnectionId
+    if (
+      source &&
+      source !== fileServer.curFileServerHostId &&
+      fileServer.fileServerHosts.some((host) => host.id === source)
+    )
+      fileServer.setCurFileServerHostId(source)
+  }, [detailLocation.search, fileServer.curFileServerHostId, fileServer.fileServerHosts])
+  useEffect(() => {
+    if (data && !readGameReference(detailLocation.search) && location.pathname === '/game')
+      navigate(gameDetailPath(data), { replace: true, state: locationState })
+  }, [data, detailLocation.search, location.pathname, locationState, navigate])
+  useEffect(() => {
     setTab('info')
     setCopyStatus('')
-    setCompactIdentity(false)
     scroll.current?.scrollTo(0, 0)
     if (!data || isDlc) return
     const controller = new AbortController()
     const load = async () => {
       const entries = await loadPkgResource(data, 'artwork', controller.signal)
-      const entry = entries.find((item) => /(^|[\\/])pic1\.png$/i.test(item.name))
+      const entry =
+        entries.find((item) => /(^|[\\/])pic1\.png$/i.test(item.name)) ||
+        entries.find((item) => /(^|[\\/])pic1\.dds$/i.test(item.name))
       if (!entry || (!data.downloadUrl && !data.resourceId)) return
       const { getPs4PkgArtworkImage } = await import('@njzy/ps4-pkg-info/web')
       throwIfAborted(controller.signal)
@@ -105,23 +134,7 @@ export function GameDetailPage({ data, hasBackground }: { data?: FileStat; hasBa
       /* Keep the cover backdrop when artwork is unavailable. */
     })
     return () => controller.abort()
-  }, [key, isDlc])
-  useEffect(() => {
-    if (!window.electron || !scroll.current || !hero.current) return
-    const observer = new IntersectionObserver(([entry]) => setCompactIdentity(!entry.isIntersecting), {
-      root: scroll.current,
-      threshold: 0,
-    })
-    observer.observe(hero.current)
-    return () => observer.disconnect()
-  }, [key])
-  useEffect(() => {
-    if (!libraryOpen || !libraryList.current) return
-    const active = libraryList.current.querySelector<HTMLElement>('[data-current]')
-    if (active)
-      libraryList.current.scrollTop =
-        active.offsetTop - libraryList.current.offsetTop - libraryList.current.clientHeight / 2
-  }, [libraryOpen, siblingIndex])
+  }, [key, isDlc, data?.icon0])
   const nestedSettings = location.pathname.startsWith('/settings')
   useEffect(() => {
     if (!window.electron || nestedSettings || !open) return
@@ -175,101 +188,29 @@ export function GameDetailPage({ data, hasBackground }: { data?: FileStat; hasBa
         >
           <Dialog.Title className="game-page-title">{title || '游戏详情'}</Dialog.Title>
           {window.electron && (
-            <>
-              <div
-                className={`game-page-header app-shell-desktop${window.electron.platform === 'darwin' ? ' app-shell-mac' : ''}`}
-              >
-                <AppHeader />
-              </div>
-              <div className="game-page-desktop-toolbar">
-                <div className="game-page-toolbar-left">
-                  <Button variant="text" className="game-page-back" icon={<ArrowLeft size={18} />} onClick={close}>
-                    返回列表
-                  </Button>
-                  {compactIdentity && data && (
-                    <div className="game-page-compact-identity">
-                      <span className="game-page-compact-cover">
-                        <GameCover file={data} />
-                      </span>
-                      <strong title={title}>{title}</strong>
-                    </div>
-                  )}
-                </div>
-                {siblingIndex >= 0 && (
-                  <div className="game-page-switcher" aria-label="切换游戏">
-                    <span className="game-page-position" aria-live="polite">
-                      {siblingIndex + 1} / {siblings.length}
-                    </span>
-                    <IconButton
-                      label="上一个游戏（←）"
-                      variant="text"
-                      disabled={!previousGame}
-                      onClick={() => switchGame(previousGame!)}
-                    >
-                      <ChevronLeft />
-                    </IconButton>
-                    <IconButton
-                      label="下一个游戏（→）"
-                      variant="text"
-                      disabled={!nextGame}
-                      onClick={() => switchGame(nextGame!)}
-                    >
-                      <ChevronRight />
-                    </IconButton>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-          {window.electron && siblings.length > 1 && (
-            <aside
-              className="game-page-library-drawer"
-              data-open={libraryOpen || undefined}
-              onMouseEnter={() => setLibraryOpen(true)}
-              onMouseLeave={() => setLibraryOpen(false)}
-              onBlur={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget)) setLibraryOpen(false)
-              }}
+            <div
+              className={`game-page-header app-shell-desktop${window.electron.platform === 'darwin' ? ' app-shell-mac' : ''}`}
             >
-              <button
-                type="button"
-                className="game-page-library-handle"
-                aria-label="浏览游戏库列表"
-                aria-expanded={libraryOpen}
-                onClick={() => setLibraryOpen(true)}
-              >
-                游戏库
-              </button>
-              {libraryOpen && (
-                <div className="game-page-library-panel">
-                  <strong>游戏库</strong>
-                  <span>{siblings.length} 款游戏 · 悬停快速切换</span>
-                  <div className="game-page-library-list" ref={libraryList}>
-                    {siblings.map((file) => (
-                      <Button
-                        key={file.filename}
-                        variant="text"
-                        className="game-page-library-item"
-                        data-current={file.filename === data?.filename || undefined}
-                        onClick={() => switchGame(file)}
-                      >
-                        <span className="game-page-library-thumb">
-                          <GameCover file={file} />
-                        </span>
-                        <span className="game-page-library-name">{formatPkgName(file, displayPkgRawTitle)}</span>
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </aside>
+              <AppHeader onClose={close} />
+            </div>
           )}
-          <div className="settings-close">
-            <IconButton label="关闭游戏详情" variant="text" onClick={close}>
-              <X />
-            </IconButton>
-            <small>ESC</small>
-          </div>
+          {window.electron && siblings.length > 0 && (
+            <GameLibrarySidebar
+              files={siblings}
+              currentFilename={data?.filename}
+              displayPkgRawTitle={displayPkgRawTitle}
+              onReturn={close}
+              onSelect={switchGame}
+            />
+          )}
+          {!window.electron && (
+            <div className="settings-close">
+              <IconButton label="关闭游戏详情" variant="text" onClick={close}>
+                <X />
+              </IconButton>
+              <small>ESC</small>
+            </div>
+          )}
           <RouteSurface
             className="game-page-scroll"
             ref={scroll}
@@ -279,11 +220,17 @@ export function GameDetailPage({ data, hasBackground }: { data?: FileStat; hasBa
           >
             {!data ? (
               <div className="game-page-content">
-                <p>未找到游戏信息，请返回游戏库重新打开。</p>
+                {loadingDetail ? (
+                  <Spin tip="正在加载游戏信息…" />
+                ) : (
+                  <Empty description="游戏资源已移除或资源库暂时无法连接。">
+                    <Button onClick={close}>返回游戏库</Button>
+                  </Empty>
+                )}
               </div>
             ) : (
               <>
-                <section ref={hero} className={`detail-hero${isDlc ? ' detail-hero-compact' : ''}`}>
+                <section className={`detail-hero${isDlc ? ' detail-hero-compact' : ''}`}>
                   {isDlc && <IconColorBackdrop src={data.icon0} />}
                   {!isDlc && (
                     <div className="detail-hero-fallback" aria-hidden="true">
@@ -301,39 +248,37 @@ export function GameDetailPage({ data, hasBackground }: { data?: FileStat; hasBa
                       </div>
                       <div className="detail-game-titles">
                         <div className="detail-identity-line">
-                          <span>PS4</span>
-                          <span>{formatPkgCategory(data.paramSfo?.CATEGORY)}</span>
-                          {data.paramSfo?.TITLE_ID && (
+                          <span>{info.platform}</span>
+                          <span>{info.category}</span>
+                          {info.titleId && (
                             <Button
                               variant="text"
                               className="detail-title-id"
                               icon={<Copy size={12} />}
                               onClick={async () => {
                                 try {
-                                  await navigator.clipboard.writeText(data.paramSfo!.TITLE_ID)
+                                  await navigator.clipboard.writeText(info.titleId!)
                                   setCopyStatus('已复制')
                                 } catch {
                                   setCopyStatus('复制失败，请手动复制')
                                 }
                               }}
                             >
-                              {data.paramSfo.TITLE_ID}
+                              {info.titleId}
                             </Button>
                           )}
                         </div>
                         <h1>{title}</h1>
-                        {data.paramSfo?.TITLE && data.paramSfo.TITLE !== title && (
-                          <p className="detail-original-title">{data.paramSfo.TITLE}</p>
-                        )}
+                        {info.title && info.title !== title && <p className="detail-original-title">{info.title}</p>}
                         <div className="detail-facts">
                           <span>
-                            游戏版本 <strong>{data.paramSfo?.APP_VER || '—'}</strong>
+                            游戏版本 <strong>{info.version || '—'}</strong>
                           </span>
                           <span>
                             容量 <strong>{formatFileSize(data.size)}</strong>
                           </span>
                           <span>
-                            最低系统 <strong>{formatSystemVersion(data.paramSfo?.SYSTEM_VER)}</strong>
+                            最低系统 <strong>{info.systemVersion}</strong>
                           </span>
                         </div>
                         <span className="detail-copy-status" role="status">
@@ -342,6 +287,7 @@ export function GameDetailPage({ data, hasBackground }: { data?: FileStat; hasBa
                       </div>
                     </div>
                     <Button
+                      disabled={Boolean(data.resourceId && !['ready', 'partial'].includes(data.parseState || ''))}
                       className="detail-install-button"
                       variant="primary"
                       icon={<Download size={18} />}
@@ -353,6 +299,11 @@ export function GameDetailPage({ data, hasBackground }: { data?: FileStat; hasBa
                   </div>
                 </section>
                 <div className="game-page-content">
+                  {data.parseMessage && (
+                    <p className="pkg-resource-state" role="status">
+                      {data.parseMessage}
+                    </p>
+                  )}
                   <Tabs.Root className="game-detail-tabs" value={tab} onValueChange={setTab}>
                     <Tabs.List className="detail-tabs">
                       <Tabs.Tab value="info">游戏信息</Tabs.Tab>
@@ -362,23 +313,23 @@ export function GameDetailPage({ data, hasBackground }: { data?: FileStat; hasBa
                       {Boolean(data.addons?.length) && <Tabs.Tab value="addon">DLC ({data.addons!.length})</Tabs.Tab>}
                     </Tabs.List>
                     <Tabs.Panel value="info">
-                      <dl className="game-metadata">
+                      <dl className="game-metadata game-overview">
                         <div>
                           <dt>游戏名称</dt>
-                          <dd>{data.paramSfo?.TITLE || '—'}</dd>
+                          <dd>{info.title || '—'}</dd>
                         </div>
                         <div>
                           <dt>游戏编号</dt>
                           <dd>
-                            {data.paramSfo?.TITLE_ID || '—'}
-                            {data.paramSfo?.TITLE_ID && (
+                            {info.titleId || '—'}
+                            {info.titleId && (
                               <Button
                                 className="metadata-copy"
                                 variant="text"
                                 aria-label="复制游戏编号"
                                 onClick={async () => {
                                   try {
-                                    await navigator.clipboard.writeText(data.paramSfo!.TITLE_ID)
+                                    await navigator.clipboard.writeText(info.titleId!)
                                     setCopyStatus('已复制')
                                   } catch {
                                     setCopyStatus('复制失败，请选中编号手动复制')
@@ -395,15 +346,15 @@ export function GameDetailPage({ data, hasBackground }: { data?: FileStat; hasBa
                         </div>
                         <div>
                           <dt>游戏版本</dt>
-                          <dd>{data.paramSfo?.APP_VER || '—'}</dd>
+                          <dd>{info.version || '—'}</dd>
                         </div>
                         <div>
                           <dt>内容类型</dt>
-                          <dd>{formatPkgCategory(data.paramSfo?.CATEGORY)}</dd>
+                          <dd>{info.category}</dd>
                         </div>
                         <div>
                           <dt>最低系统版本</dt>
-                          <dd>{formatSystemVersion(data.paramSfo?.SYSTEM_VER)}</dd>
+                          <dd>{info.systemVersion}</dd>
                         </div>
                         <div>
                           <dt>文件大小</dt>
@@ -411,13 +362,13 @@ export function GameDetailPage({ data, hasBackground }: { data?: FileStat; hasBa
                         </div>
                         <div>
                           <dt>包版本</dt>
-                          <dd>{data.paramSfo?.VERSION || '—'}</dd>
+                          <dd>{info.masterVersion || '—'}</dd>
                         </div>
-                        <div>
+                        <div className="game-overview-wide">
                           <dt>内容编号</dt>
-                          <dd>{data.paramSfo?.CONTENT_ID || '—'}</dd>
+                          <dd>{info.contentId || '—'}</dd>
                         </div>
-                        <div>
+                        <div className="game-overview-wide">
                           <dt>文件名</dt>
                           <dd>{data.basename}</dd>
                         </div>
@@ -425,20 +376,19 @@ export function GameDetailPage({ data, hasBackground }: { data?: FileStat; hasBa
                       <Disclosure
                         className="game-metadata-raw"
                         key={data.filename}
-                        defaultOpen
-                        title="技术信息 · 原始 PARAM.SFO"
+                        title={`技术信息 · 原始 ${info.ps5 ? 'param.json' : 'PARAM.SFO'}`}
                       >
-                        {Object.keys(data.paramSfo || {}).length ? (
+                        {Object.keys(info.raw).length ? (
                           <dl className="game-metadata">
-                            {Object.entries(data.paramSfo || {}).map(([key, value]) => (
+                            {Object.entries(info.raw).map(([key, value]) => (
                               <div key={key}>
                                 <dt>{key}</dt>
-                                <dd>{String(value)}</dd>
+                                <dd>{typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}</dd>
                               </div>
                             ))}
                           </dl>
                         ) : (
-                          <p className="muted">尚未读取到 PARAM.SFO 信息</p>
+                          <p className="muted">尚未读取到{info.ps5 ? ' param.json ' : ' PARAM.SFO '}信息</p>
                         )}
                       </Disclosure>
                     </Tabs.Panel>

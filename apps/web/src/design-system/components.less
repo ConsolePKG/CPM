@@ -39,6 +39,16 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
+body:has(.app-shell-desktop) .cpm-button-primary:not(:disabled):hover {
+  opacity: 1;
+  box-shadow:
+    0 0 0 2px var(--bg),
+    0 0 0 3px var(--interaction-ring),
+    0 0 16px 2px var(--interaction-glow);
+}
+body:has(.app-shell-desktop) .cpm-button:not(.game-card):focus-visible {
+  box-shadow: 0 0 12px 2px var(--interaction-glow);
+}
 .cpm-icon-button {
   padding: 10px;
   width: 42px;

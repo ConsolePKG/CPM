@@ -1,5 +1,5 @@
 import { PkgListClickAction } from 'common/types/configStore'
-import { memo } from 'react'
+import { memo, type PointerEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Button, Empty, Spin } from '@/design-system'
 import { formatFileSize, formatPkgName } from '@/utils'
@@ -8,6 +8,29 @@ import type { TableListProps } from './TableList'
 import { GameCover } from './GameCover'
 import { GameActions } from './GameActions'
 import { useContainer } from '@/store/container'
+
+function updateCoverHighlight(event: PointerEvent<HTMLDivElement>) {
+  if (
+    event.pointerType !== 'mouse' ||
+    !event.currentTarget.closest('.app-shell-desktop') ||
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  ) {
+    return
+  }
+  const cover = event.currentTarget
+  const bounds = cover.getBoundingClientRect()
+  const x = Math.max(0, Math.min(100, ((event.clientX - bounds.left) / bounds.width) * 100))
+  const y = Math.max(0, Math.min(100, ((event.clientY - bounds.top) / bounds.height) * 100))
+  // Update only this cover's light position without rendering the library again.
+  cover.style.setProperty('--cover-highlight-x', `${x}%`)
+  cover.style.setProperty('--cover-highlight-y', `${y}%`)
+}
+
+function resetCoverHighlight(event: PointerEvent<HTMLDivElement>) {
+  event.currentTarget.style.removeProperty('--cover-highlight-x')
+  event.currentTarget.style.removeProperty('--cover-highlight-y')
+}
+
 export const CardList = memo(function CardList({
   data,
   loading,
@@ -58,16 +81,28 @@ export const CardList = memo(function CardList({
                   )
                 }
               >
-                <div className="game-cover">
+                <div
+                  className="game-cover"
+                  onPointerEnter={updateCoverHighlight}
+                  onPointerMove={updateCoverHighlight}
+                  onPointerLeave={resetCoverHighlight}
+                >
                   <GameCover file={file} />
-                  <span className="game-cover-action">
-                    {sending
-                      ? '正在发送…'
-                      : file.type === 'directory'
-                        ? '打开文件夹'
-                        : clickAction === PkgListClickAction.install && canInstall
-                          ? '安装游戏'
-                          : '查看详情'}
+                  <span className="game-cover-caption">
+                    {file.type !== 'directory' && !['PKG', '文件'].includes(platform) && (
+                      <span className="game-cover-platform" aria-hidden="true">
+                        {platform === 'Nintendo 3DS' ? '3DS' : platform}
+                      </span>
+                    )}
+                    <span className="game-cover-action">
+                      {sending
+                        ? '正在发送…'
+                        : file.type === 'directory'
+                          ? '打开文件夹'
+                          : clickAction === PkgListClickAction.install && canInstall
+                            ? '安装游戏'
+                            : '查看详情'}
+                    </span>
                   </span>
                 </div>
                 <strong title={title}>{title}</strong>
