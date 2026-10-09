@@ -27,7 +27,7 @@ export function nodeWorkerParser(createWorker?: () => Worker): PackageParser {
         const reader = { readRange: (offset, length) => new Promise((resolve, reject) => { const id = ++sequence; pending.set(id, { resolve, reject }); parentPort.postMessage({ type: 'read', id, offset, length }); }) };
         parentPort.on('message', async (data) => {
           if (data.type === 'read-result') { const request = pending.get(data.id); pending.delete(data.id); data.error ? request.reject(new Error(data.error)) : request.resolve(data.bytes); return; }
-          try { const result = data.operation === 'parse' ? await packageParser.parse(reader) : await packageParser.asset(reader, data.kind, data.key); parentPort.postMessage({ result }); } catch (error) { parentPort.postMessage({ error: error.message }); }
+          try { reader.size = data.size; const result = data.operation === 'parse' ? await packageParser.parse(reader) : await packageParser.asset(reader, data.kind, data.key); parentPort.postMessage({ result }); } catch (error) { parentPort.postMessage({ error: error.message }); }
         }); parentPort.postMessage({ type: 'ready' });
         } catch (error) { parentPort.postMessage({ error: error.message }); }
       })();
@@ -56,7 +56,7 @@ export function nodeWorkerParser(createWorker?: () => Worker): PackageParser {
         if (!settled) finish(new Error(`Parser worker exited: ${code}`))
       })
       worker.on('message', async (data) => {
-        if (data.type === 'ready') worker.postMessage({ operation, kind, key })
+        if (data.type === 'ready') worker.postMessage({ operation, kind, key, size: reader.size })
         else if (data.type === 'read') {
           try {
             const bytes = await reader.readRange(data.offset, data.length, bounded.signal)

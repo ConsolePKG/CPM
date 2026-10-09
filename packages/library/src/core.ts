@@ -286,6 +286,7 @@ export class LibraryEngine implements LibraryClient {
     const before = await source.stat(file.path)
     if (fileVersion(before) !== file.fileVersion) throw new LibraryError('file_changed', 'Rescan changed resource', 409)
     const reader = await source.open(file.path)
+    reader.size = file.size
     try {
       const result = await this.parser.asset(reader, kind, key)
       if (fileVersion(await source.stat(file.path)) !== file.fileVersion)
@@ -319,6 +320,7 @@ export class LibraryEngine implements LibraryClient {
     return {
       file,
       reader: {
+        size: file.size,
         readRange: async (offset: number, length: number, signal?: AbortSignal) => {
           if (fileVersion(await source.stat(file.path)) !== file.fileVersion)
             throw new LibraryError('file_changed', 'Resource changed during transfer', 409)
@@ -430,6 +432,7 @@ export class LibraryEngine implements LibraryClient {
     try {
       await this.update({ ...file, state: 'parsing' })
       reader = await source.open(file.path)
+      reader.size = file.size
       const result = await this.parser.parse(reader, this.lifetime.signal)
       const version = fileVersion(await source.stat(file.path))
       if (version !== file.fileVersion) {

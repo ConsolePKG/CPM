@@ -516,12 +516,21 @@ importers:
       '@njzy/ps4-pkg-info':
         specifier: workspace:^0.1.0
         version: link:../ps4-pkg-info
+      '@noble/hashes':
+        specifier: 2.4.0
+        version: 2.4.0
       better-sqlite3:
         specifier: ^12.4.1
         version: 12.11.1
       buffer:
         specifier: ^6.0.3
         version: 6.0.3
+      jsonc-parser:
+        specifier: 3.3.1
+        version: 3.3.1
+      tex-decoder:
+        specifier: 2.0.0
+        version: 2.0.0
       tsx:
         specifier: ^4.20.6
         version: 4.23.15
@@ -1830,6 +1839,9 @@ packages:
   bindings@1.5.0:
     resolution: {integrity: sha512-p2q/t/mhvuOj/UeLlV6566GD/guowlr0hHxClI0W9m7MWYkL1F0hLo+0Aexs9HSPCtR1SXQ0TD3MMKrXZajbiQ==}
 
+  bireader@5.0.7:
+    resolution: {integrity: sha512-qpFT0ZicvADfFUbIv1b9QVr1fcFTHP/ZZHIbkOmFuNpvf2ZfV4oN4wQMQiOpUMT2tf4ygArr0fEJJ1GNWxJZLg==}
+
   bl@4.1.0:
     resolution: {integrity: sha512-1W07cM9gS6DcLperZfFSj+bWLtaPGSOHWhPiGzXmvVJbRLdG82sH/Kn8EtW1VqWVA54AKf2h5k5BbnIbwF3h6w==}
 
@@ -2709,6 +2721,9 @@ packages:
     resolution: {integrity: sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg==}
     engines: {node: '>=6'}
     hasBin: true
+
+  jsonc-parser@3.3.1:
+    resolution: {integrity: sha512-HUgH65KyejrUFPvHFPbqOY0rsFip3Bo5wb4ngvdi1EpCYWUQDC5V+Y7mZws+DLkr4M//zQJoanu1SP+87Dv1oQ==}
 
   jsonfile@4.0.0:
     resolution: {integrity: sha512-m6F1R3z8jjlf2imQHS2Qez5sjKWQzbuuhuJ/FKYFRZvPE3PuHcSMVZzfsLhGVOkfd20obL5SWEBew5ShlquNxg==}
@@ -3593,6 +3608,9 @@ packages:
   temp@0.9.4:
     resolution: {integrity: sha512-yYrrsWnrXMcdsnu/7YMYAofM1ktpL5By7vZhf15CrXijWWrEYZks5AXBudalfSWJLlnen/QUJUB5aoB0kqZUGA==}
     engines: {node: '>=6.0.0'}
+
+  tex-decoder@2.0.0:
+    resolution: {integrity: sha512-CQg7hbRO7Ur1KMEVJEe9hdfg0WR//ONJK/939IZ3cjo9kj3Upt1K1mA95UoIDP46JqH89EkDrv0qjqQFi0s+5w==}
 
   tiny-async-pool@1.3.0:
     resolution: {integrity: sha512-01EAw5EDrcVrdgyCLgoSPvqznC0sVxDSVeiOz09FUpjh71G79VCqneOr+xvt7T1r76CF6ZZfPjHorN2+d+3mqA==}
@@ -4881,6 +4899,8 @@ snapshots:
     dependencies:
       file-uri-to-path: 1.0.0
 
+  bireader@5.0.7: {}
+
   bl@4.1.0:
     dependencies:
       buffer: 5.7.1
@@ -5837,6 +5857,8 @@ snapshots:
 
   json5@2.2.3: {}
 
+  jsonc-parser@3.3.1: {}
+
   jsonfile@4.0.0:
     optionalDependencies:
       graceful-fs: 4.2.11
@@ -6762,6 +6784,10 @@ snapshots:
     dependencies:
       mkdirp: 0.5.6
       rimraf: 2.6.3
+
+  tex-decoder@2.0.0:
+    dependencies:
+      bireader: 5.0.7
 
   tiny-async-pool@1.3.0:
     dependencies:

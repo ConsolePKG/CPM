@@ -23,15 +23,18 @@
   },
   "dependencies": {
     "@njzy/ps4-pkg-info": "workspace:^0.1.0",
+    "@noble/hashes": "2.4.0",
     "better-sqlite3": "^12.4.1",
     "buffer": "^6.0.3",
-    "webdav": "5.10.0",
-    "tsx": "^4.20.6"
+    "jsonc-parser": "3.3.1",
+    "tex-decoder": "2.0.0",
+    "tsx": "^4.20.6",
+    "webdav": "5.10.0"
   },
   "devDependencies": {
+    "@rstest/core": "catalog:",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "22",
-    "@rstest/core": "catalog:",
     "typescript": "catalog:"
   }
 }

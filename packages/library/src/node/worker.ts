@@ -22,6 +22,7 @@ port.on('message', async (data) => {
     return
   }
   try {
+    reader.size = data.size
     const result =
       data.operation === 'parse'
         ? await packageParser.parse(reader)

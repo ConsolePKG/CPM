@@ -28,6 +28,8 @@ export type PackageMetadata = {
   titleId?: string
   contentId?: string
   version?: string
+  masterVersion?: string
+  requiredSystemVersion?: string
   compatibilityKey?: string
   raw: Record<string, unknown>
 }
@@ -81,6 +83,7 @@ export type LibraryCapabilities = {
   publishing: boolean
 }
 export interface ByteReader {
+  size?: number
   readRange(offset: number, length: number, signal?: AbortSignal): Promise<Uint8Array>
   close?(): void | Promise<void>
 }

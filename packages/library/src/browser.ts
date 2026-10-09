@@ -164,6 +164,7 @@ export function workerParser(createWorker: () => Worker): PackageParser {
         if (settled) return
         worker.terminate()
         const fallback = {
+          size: reader.size,
           readRange: (offset: number, length: number) => reader.readRange(offset, length, bounded.signal),
         }
         ;(operation === 'parse'
@@ -186,7 +187,7 @@ export function workerParser(createWorker: () => Worker): PackageParser {
           finish(data.error ? new LibraryError('parse_failed', data.error) : undefined, data.result)
         }
       }
-      worker.postMessage({ type: 'execute', operation, kind, key })
+      worker.postMessage({ type: 'execute', operation, kind, key, size: reader.size })
     })
   }
   return {

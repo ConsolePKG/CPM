@@ -11,6 +11,7 @@ self.onmessage = async ({ data }) => {
   }
   if (data.type !== 'execute') return
   const reader = {
+    size: data.size,
     readRange: (offset: number, length: number) =>
       new Promise<Uint8Array>((resolve, reject) => {
         const id = ++sequence

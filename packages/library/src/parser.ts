@@ -2,6 +2,7 @@ import { Buffer } from 'buffer'
 import { extract } from '@njzy/ps4-pkg-info/core'
 import { extractArtwork, extractArtworkImage, extractTrophies } from '@njzy/ps4-pkg-info/resources'
 import { LibraryError, type ByteReader, type PackageParser } from './types'
+import { isPs5, parsePs5, ps5Asset } from './ps5'
 
 export function seekReader(reader: ByteReader, signal?: AbortSignal) {
   return {
@@ -19,8 +20,9 @@ export function seekReader(reader: ByteReader, signal?: AbortSignal) {
   }
 }
 export const packageParser: PackageParser = {
-  version: 'consolepkg-1',
+  version: 'consolepkg-2-ps5',
   async parse(reader, signal) {
+    if (await isPs5(reader, signal)) return parsePs5(reader, signal)
     const header = await reader.readRange(0, 4, signal)
     if (header.length !== 4 || ![127, 67, 78, 84].every((value, index) => header[index] === value))
       return {
@@ -55,6 +57,7 @@ export const packageParser: PackageParser = {
     }
   },
   async asset(reader, kind, key) {
+    if (await isPs5(reader)) return ps5Asset(reader, kind, key)
     const source = seekReader(reader)
     if (kind === 'artwork') return extractArtwork(source)
     if (kind === 'trophies') return extractTrophies(source, key)
